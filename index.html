@@ -166,6 +166,19 @@ header .cloud-status.offline { background: rgba(220, 53, 69, 0.4); }
 .user-info { display: inline-flex; align-items: center; gap: 8px; margin-left: 10px; font-size: 13px; color: white; }
 .user-info .logout-btn { background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.4); padding: 4px 10px; border-radius: 8px; cursor: pointer; font-size: 12px; font-family: inherit; }
 .user-info .logout-btn:hover { background: rgba(255,255,255,0.3); }
+.role-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; margin-right: 4px; }
+.role-badge.superadmin { background: #9c27b0; color: white; }
+.role-badge.admin { background: #1976d2; color: white; }
+.role-badge.customer { background: #2dc653; color: white; }
+.login-tabs { display: flex; gap: 4px; margin-bottom: 16px; border-bottom: 2px solid #f0e0c8; }
+.login-tab { flex: 1; padding: 10px; background: none; border: none; cursor: pointer; font-size: 15px; font-weight: 600; color: #888; border-bottom: 3px solid transparent; margin-bottom: -2px; font-family: inherit; }
+.login-tab.active { color: #ff6b35; border-bottom-color: #ff6b35; }
+.login-pane { display: none; }
+.login-pane.active { display: block; }
+/* 角色相關隱藏 */
+body.role-customer .admin-only { display: none !important; }
+body.role-customer .superadmin-only { display: none !important; }
+body.role-admin .superadmin-only { display: none !important; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 @media print {
@@ -204,12 +217,26 @@ header .cloud-status.offline { background: rgba(220, 53, 69, 0.4); }
 
 <div class="login-overlay show" id="loginOverlay">
   <div class="login-card">
-    <h2>🔒 訂餐系統登入</h2>
+    <h2>🍱 訂餐系統</h2>
     <div class="subtitle">115年7月8月安親班團體訂餐</div>
-    <div class="lc-fg"><label>帳號</label><input type="text" id="loginUsername" placeholder="請輸入帳號" autocomplete="username"></div>
-    <div class="lc-fg"><label>密碼</label><input type="password" id="loginPassword" placeholder="請輸入密碼" autocomplete="current-password"></div>
-    <button class="btn-login" id="btnLogin">登入</button>
-    <div class="error-msg" id="loginError"></div>
+    <div class="login-tabs">
+      <button class="login-tab active" data-pane="login">登入</button>
+      <button class="login-tab" data-pane="signup">註冊安親班</button>
+    </div>
+    <div class="login-pane active" id="paneLogin">
+      <div class="lc-fg"><label>帳號</label><input type="text" id="loginUsername" placeholder="請輸入帳號" autocomplete="username"></div>
+      <div class="lc-fg"><label>密碼</label><input type="password" id="loginPassword" placeholder="請輸入密碼" autocomplete="current-password"></div>
+      <button class="btn-login" id="btnLogin">登入</button>
+      <div class="error-msg" id="loginError"></div>
+    </div>
+    <div class="login-pane" id="paneSignup">
+      <div class="lc-fg"><label>安親班名稱<span style="color:#dc3545">*</span></label><input type="text" id="signupSchool" placeholder="例：陽光安親班"></div>
+      <div class="lc-fg"><label>帳號（英數）<span style="color:#dc3545">*</span></label><input type="text" id="signupUsername" placeholder="例：yangguang01" autocomplete="off"></div>
+      <div class="lc-fg"><label>密碼<span style="color:#dc3545">*</span></label><input type="password" id="signupPassword" placeholder="至少 4 字" autocomplete="new-password"></div>
+      <button class="btn-login" id="btnSignup">註冊並登入</button>
+      <div class="error-msg" id="signupError"></div>
+      <div style="font-size:11px; color:#999; margin-top:8px; text-align:center;">註冊後請記住帳密，下次直接登入</div>
+    </div>
   </div>
 </div>
 
@@ -296,8 +323,8 @@ header .cloud-status.offline { background: rgba(220, 53, 69, 0.4); }
     <h2>📋 全部訂單</h2>
     <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
       <button class="btn btn-success btn-sm" id="btnExportCSV">📤 匯出 CSV</button>
-      <button class="btn btn-info btn-sm" id="btnPrintAll">🖨️ 列印彙總表</button>
-      <button class="btn btn-danger btn-sm" id="btnClearAll">🗑️ 清空全部</button>
+      <button class="btn btn-info btn-sm admin-only" id="btnPrintAll">🖨️ 列印彙總表</button>
+      <button class="btn btn-danger btn-sm superadmin-only" id="btnClearAll">🗑️ 清空全部</button>
     </div>
     <div id="ordersList"></div>
   </div>
@@ -330,53 +357,16 @@ header .cloud-status.offline { background: rgba(220, 53, 69, 0.4); }
 
 <script>
 (function(){
-  var VALID_USERS = [{ u: 'wei01', p: '12345', n: 'wei01' }];
-  var KEY = 'orderbook_login_v1';
-  var DUR = 8 * 60 * 60 * 1000;
-  function check() {
-    try {
-      var d = JSON.parse(localStorage.getItem(KEY) || 'null');
-      if (d && d.expiresAt > Date.now() && VALID_USERS.find(function(u){return u.u === d.username;})) return d;
-    } catch(e) {}
-    return null;
-  }
-  function show() {
-    var o = document.getElementById('loginOverlay'); if (o) o.classList.add('show');
-    var u = document.getElementById('userInfo'); if (u) u.style.display = 'none';
-  }
-  function hide(name) {
-    var o = document.getElementById('loginOverlay'); if (o) o.classList.remove('show');
-    var u = document.getElementById('userInfo'); if (u) u.style.display = 'inline-flex';
-    var n = document.getElementById('loginUserName'); if (n) n.textContent = name;
-  }
-  function login() {
-    var u = document.getElementById('loginUsername').value.trim();
-    var p = document.getElementById('loginPassword').value;
-    var e = document.getElementById('loginError');
-    var f = VALID_USERS.find(function(x){return x.u === u && x.p === p;});
-    if (!f) { e.textContent = '\u274c \u5e33\u865f\u6216\u5bc6\u78bc\u932f\u8aa4'; return; }
-    e.textContent = '';
-    localStorage.setItem(KEY, JSON.stringify({ username: f.u, expiresAt: Date.now() + DUR }));
-    hide(f.n);
-  }
-  function logout() {
-    localStorage.removeItem(KEY);
-    document.getElementById('loginUsername').value = '';
-    document.getElementById('loginPassword').value = '';
-    show();
-  }
-  function init() {
-    var logged = check();
-    if (logged) { var u = VALID_USERS.find(function(x){return x.u === logged.username;}); hide(u.n); }
-    else { show(); }
-    var bL = document.getElementById('btnLogin'); if (bL) bL.addEventListener('click', login);
-    var bO = document.getElementById('btnLogout'); if (bO) bO.addEventListener('click', logout);
-    ['loginUsername','loginPassword'].forEach(function(id){
-      var el = document.getElementById(id);
-      if (el) el.addEventListener('keypress', function(ev){ if (ev.key === 'Enter') login(); });
+  // 登入/註冊頁籤切換 (純 UI)
+  document.addEventListener('DOMContentLoaded', function(){
+    document.querySelectorAll('.login-tab').forEach(function(tab){
+      tab.addEventListener('click', function(){
+        var pane = tab.getAttribute('data-pane');
+        document.querySelectorAll('.login-tab').forEach(function(t){ t.classList.toggle('active', t === tab); });
+        document.querySelectorAll('.login-pane').forEach(function(p){ p.classList.toggle('active', p.id === 'pane' + pane.charAt(0).toUpperCase() + pane.slice(1)); });
+      });
     });
-  }
-  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', init); } else { init(); }
+  });
 })();
 </script>
 
@@ -399,8 +389,165 @@ const FIREBASE_CONFIG = {
 };
 // ============================================================
 
+// ==================== 帳號 / 角色 ====================
+const HARDCODED_ACCOUNTS = {
+  'C930357c': { password: '23709556', role: 'superadmin', name: '超級管理員' },
+  'wei01': { password: '12345', role: 'admin', name: 'wei01' }
+};
+const SESSION_KEY = 'orderbook_login_v1';
+const SESSION_DUR = 8 * 60 * 60 * 1000;
+let CURRENT_USER = null;
+
+function isSuperAdmin() { return CURRENT_USER && CURRENT_USER.role === 'superadmin'; }
+function isAdmin() { return CURRENT_USER && (CURRENT_USER.role === 'admin' || CURRENT_USER.role === 'superadmin'); }
+function isCustomer() { return CURRENT_USER && CURRENT_USER.role === 'customer'; }
+function canSeeAllOrders() { return isAdmin(); }
+
+function applyRoleClass() {
+  document.body.classList.remove('role-customer','role-admin','role-superadmin');
+  if (CURRENT_USER) document.body.classList.add('role-' + CURRENT_USER.role);
+}
+
+function loadSession() {
+  try {
+    const d = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null');
+    if (d && d.expiresAt > Date.now()) return d;
+  } catch(e) {}
+  return null;
+}
+function saveSession(user) {
+  localStorage.setItem(SESSION_KEY, JSON.stringify({
+    username: user.username, role: user.role, name: user.name,
+    expiresAt: Date.now() + SESSION_DUR
+  }));
+}
+function clearSession() { localStorage.removeItem(SESSION_KEY); }
+
+function showLoginUI() {
+  CURRENT_USER = null;
+  applyRoleClass();
+  document.getElementById('loginOverlay').classList.add('show');
+  document.getElementById('userInfo').style.display = 'none';
+}
+function hideLoginUI() {
+  document.getElementById('loginOverlay').classList.remove('show');
+  document.getElementById('userInfo').style.display = 'inline-flex';
+  const roleLabels = { superadmin: '🔑 超管', admin: '🛡️ 管理員', customer: '🍱 訂餐' };
+  document.getElementById('loginUserName').innerHTML =
+    '<span class="role-badge ' + CURRENT_USER.role + '">' + (roleLabels[CURRENT_USER.role] || '') + '</span> ' + escapeHtml(CURRENT_USER.name);
+}
+
+async function tryLogin(username, password) {
+  // 硬寫死管理員
+  if (HARDCODED_ACCOUNTS[username] && HARDCODED_ACCOUNTS[username].password === password) {
+    return { username: username, role: HARDCODED_ACCOUNTS[username].role, name: HARDCODED_ACCOUNTS[username].name };
+  }
+  // 不允許用註冊帳號名取得管理員權限
+  if (HARDCODED_ACCOUNTS[username]) return null;
+  // 查 Firestore 客戶帳號
+  if (!db) return null;
+  try {
+    const snap = await getDoc(doc(db, 'accounts', username));
+    if (snap.exists()) {
+      const data = snap.data();
+      if (data.password === password) {
+        return { username: username, role: 'customer', name: data.schoolName || username };
+      }
+    }
+  } catch(e) { console.error('login err', e); }
+  return null;
+}
+
+async function trySignup(username, password, schoolName) {
+  if (!username || !password || !schoolName) return { err: '所有欄位都要填' };
+  if (!/^[a-zA-Z0-9_]{3,20}$/.test(username)) return { err: '帳號需 3-20 個英數字或底線' };
+  if (password.length < 4) return { err: '密碼至少 4 字' };
+  if (HARDCODED_ACCOUNTS[username]) return { err: '此帳號已被使用' };
+  if (!db) return { err: '雲端尚未連線' };
+  try {
+    const ref = doc(db, 'accounts', username);
+    const existing = await getDoc(ref);
+    if (existing.exists()) return { err: '帳號已存在' };
+    await setDoc(ref, { password: password, schoolName: schoolName, role: 'customer', createdAt: serverTimestamp() });
+    return { ok: { username: username, role: 'customer', name: schoolName } };
+  } catch(e) { return { err: '註冊失敗：' + e.message }; }
+}
+
+function bindAuthHandlers() {
+  document.getElementById('btnLogin').addEventListener('click', async () => {
+    const u = document.getElementById('loginUsername').value.trim();
+    const p = document.getElementById('loginPassword').value;
+    const e = document.getElementById('loginError');
+    if (!u || !p) { e.textContent = '請輸入帳號和密碼'; return; }
+    e.textContent = '驗證中...';
+    const user = await tryLogin(u, p);
+    if (user) {
+      CURRENT_USER = user;
+      saveSession(user);
+      applyRoleClass();
+      hideLoginUI();
+      e.textContent = '';
+      refreshActiveTab();
+      renderAll();
+    } else {
+      e.textContent = '❌ 帳號或密碼錯誤';
+    }
+  });
+  document.getElementById('btnSignup').addEventListener('click', async () => {
+    const school = document.getElementById('signupSchool').value.trim();
+    const u = document.getElementById('signupUsername').value.trim();
+    const p = document.getElementById('signupPassword').value;
+    const e = document.getElementById('signupError');
+    e.textContent = '註冊中...';
+    const r = await trySignup(u, p, school);
+    if (r.ok) {
+      CURRENT_USER = r.ok;
+      saveSession(r.ok);
+      applyRoleClass();
+      hideLoginUI();
+      e.textContent = '';
+      refreshActiveTab();
+      renderAll();
+    } else {
+      e.textContent = '❌ ' + r.err;
+    }
+  });
+  document.getElementById('btnLogout').addEventListener('click', () => {
+    clearSession();
+    document.getElementById('loginUsername').value = '';
+    document.getElementById('loginPassword').value = '';
+    showLoginUI();
+  });
+  ['loginUsername','loginPassword','signupSchool','signupUsername','signupPassword'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('keypress', (ev) => {
+      if (ev.key !== 'Enter') return;
+      if (id.startsWith('signup')) document.getElementById('btnSignup').click();
+      else document.getElementById('btnLogin').click();
+    });
+  });
+}
+
+function checkExistingSession() {
+  const s = loadSession();
+  if (!s) { showLoginUI(); return false; }
+  if (HARDCODED_ACCOUNTS[s.username] && HARDCODED_ACCOUNTS[s.username].role === s.role) {
+    CURRENT_USER = { username: s.username, role: s.role, name: s.name };
+    applyRoleClass();
+    hideLoginUI();
+    return true;
+  } else if (s.role === 'customer') {
+    CURRENT_USER = { username: s.username, role: s.role, name: s.name };
+    applyRoleClass();
+    hideLoginUI();
+    return true;
+  }
+  showLoginUI();
+  return false;
+}
+
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js';
-import { getFirestore, collection, doc, setDoc, addDoc, deleteDoc, onSnapshot, serverTimestamp, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
+import { getFirestore, collection, doc, setDoc, addDoc, deleteDoc, getDoc, onSnapshot, serverTimestamp, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
 
 // ==================== 設定 ====================
 const TABLE_CONFIG = [
@@ -464,14 +611,20 @@ if (isConfigured()) {
     db = getFirestore(app);
     useFirebase = true;
     setCloudStatus('☁️ 已連線雲端', 'online');
+    bindAuthHandlers();
+    checkExistingSession();
     subscribeOrders();
   } catch (e) {
     console.error(e);
     setCloudStatus('⚠️ Firebase 設定錯誤，使用本機模式', 'offline');
     useFirebase = false;
+    bindAuthHandlers();
+    checkExistingSession();
     fallbackLocal();
   }
 } else {
+  bindAuthHandlers();
+  checkExistingSession();
   document.getElementById('setupBanner').style.display = 'block';
   setCloudStatus('💾 本機模式（未設定 Firebase）', 'offline');
   fallbackLocal();
@@ -551,7 +704,7 @@ function getSeatsTakenByTimeSlot(timeSlot, excludeOrderId = null) {
     if (order.timeSlot !== timeSlot) return;
     const color = getOrderColor(order.code);
     order.selectedSeats.forEach((seatNum, position) => {
-      taken[seatNum] = { orderId: order.id, schoolName: order.schoolName, code: order.code, color, position: position + 1 };
+      taken[seatNum] = { orderId: order.id, ownerId: order.ownerId, schoolName: order.schoolName, code: order.code, color, position: position + 1 };
     });
   });
   return taken;
@@ -697,11 +850,21 @@ function makeDisplaySeat(seatNum, taken) {
   const el = document.createElement('div');
   el.className = 'seat';
   if (taken[seatNum]) {
-    el.classList.add('taken', 'taken-tooltip');
-    el.style.background = taken[seatNum].color;
-    el.style.borderColor = taken[seatNum].color;
-    el.textContent = taken[seatNum].code + taken[seatNum].position;
-    el.dataset.tooltip = `${taken[seatNum].schoolName} · 座位${seatNum}`;
+    const isMine = taken[seatNum].ownerId === (CURRENT_USER && CURRENT_USER.username);
+    if (canSeeAllOrders() || isMine) {
+      el.classList.add('taken', 'taken-tooltip');
+      el.style.background = taken[seatNum].color;
+      el.style.borderColor = taken[seatNum].color;
+      el.textContent = taken[seatNum].code + taken[seatNum].position;
+      el.dataset.tooltip = `${taken[seatNum].schoolName} · 座位${seatNum}`;
+    } else {
+      // 客戶看別人 → 匿名「已預訂」
+      el.classList.add('taken');
+      el.style.background = '#999';
+      el.style.borderColor = '#777';
+      el.textContent = '✕';
+      el.title = '已被預訂';
+    }
     el.style.cursor = 'default';
   } else { el.textContent = seatNum; el.style.cursor = 'default'; }
   return el;
@@ -765,7 +928,8 @@ async function saveCurrentOrder() {
     timeSlot: currentOrder.timeSlot,
     meals: currentOrder.meals, seats: currentOrder.seats,
     selectedSeats: currentOrder.selectedSeats,
-    createdAt: currentOrder.createdAt || Date.now()
+    createdAt: currentOrder.createdAt || Date.now(),
+    ownerId: currentOrder.ownerId || (CURRENT_USER ? CURRENT_USER.username : 'unknown')
   };
 
   if (useFirebase && db) {
@@ -839,10 +1003,17 @@ function editOrder(id) {
 }
 
 // ==================== 訂單管理 ====================
+function getVisibleOrders() {
+  if (canSeeAllOrders()) return ORDERS;
+  if (isCustomer()) return ORDERS.filter(o => o.ownerId === CURRENT_USER.username);
+  return [];
+}
+
 function renderOrdersList() {
   const container = document.getElementById('ordersList');
-  if (ORDERS.length === 0) { container.innerHTML = '<div class="empty-state"><div class="icon">📭</div>還沒有訂單</div>'; return; }
-  const sorted = [...ORDERS].sort((a, b) => { if (a.timeSlot !== b.timeSlot) return a.timeSlot.localeCompare(b.timeSlot); return (a.code || '').localeCompare(b.code || ''); });
+  const visible = getVisibleOrders();
+  if (visible.length === 0) { container.innerHTML = '<div class="empty-state"><div class="icon">📭</div>' + (isCustomer() ? '你還沒有訂單，請到「新增訂單」建立' : '還沒有訂單') + '</div>'; return; }
+  const sorted = [...visible].sort((a, b) => { if (a.timeSlot !== b.timeSlot) return a.timeSlot.localeCompare(b.timeSlot); return (a.code || '').localeCompare(b.code || ''); });
   let html = `<div style="overflow-x:auto;"><table class="orders-table"><thead><tr>
     <th>代號</th><th>時段</th><th>安親班</th><th>聯絡人</th><th>手機</th><th>套餐(A/B/C)</th><th>座位(D/E)</th><th>老師</th><th>總人數</th><th>金額</th><th>操作</th>
   </tr></thead><tbody>`;
@@ -866,10 +1037,10 @@ function renderOrdersList() {
       </td></tr>`;
   });
   html += '</tbody></table></div>';
-  const totalAmount = ORDERS.reduce((sum, o) => sum + calcTotal(o), 0);
-  const totalPpl = ORDERS.reduce((sum, o) => sum + totalPeople(o), 0);
+  const totalAmount = visible.reduce((sum, o) => sum + calcTotal(o), 0);
+  const totalPpl = visible.reduce((sum, o) => sum + totalPeople(o), 0);
   html += `<div style="margin-top:14px; padding:14px; background:#fff3e6; border-radius:8px; display:flex; gap:24px; flex-wrap:wrap;">
-    <div>📊 訂單數：<strong>${ORDERS.length}</strong></div>
+    <div>📊 訂單數：<strong>${visible.length}</strong></div>
     <div>👥 總人數：<strong>${totalPpl}</strong></div>
     <div>💰 總金額：<strong style="color:#ff6b35;">$${totalAmount.toLocaleString()}</strong></div></div>`;
   container.innerHTML = html;
@@ -982,9 +1153,10 @@ function printAll() {
 }
 
 function exportCSV() {
-  if (ORDERS.length === 0) { showToast('沒有訂單可匯出', 'error'); return; }
+  const visible = getVisibleOrders();
+  if (visible.length === 0) { showToast('沒有訂單可匯出', 'error'); return; }
   const headers = ['代號','訂單編號','建立時間','時段','安親班','聯絡人','手機','A套餐','B套餐','C套餐','D學生','D老師','E學生','E老師','總人數','金額','座位編號'];
-  const sorted = [...ORDERS].sort((a, b) => a.timeSlot.localeCompare(b.timeSlot) || (a.code||'').localeCompare(b.code||''));
+  const sorted = [...visible].sort((a, b) => a.timeSlot.localeCompare(b.timeSlot) || (a.code||'').localeCompare(b.code||''));
   const rows = sorted.map(o => [o.code, o.id, new Date(o.createdAt).toLocaleString('zh-TW'), o.timeSlot, o.schoolName, o.contact, o.phone, o.meals.A, o.meals.B, o.meals.C, o.seats.D_students, o.seats.D_teachers, o.seats.E_students, o.seats.E_teachers, totalPeople(o), calcTotal(o), o.selectedSeats.join(' ')]);
   const csv = '﻿' + [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -1000,7 +1172,8 @@ function renderOverview() {
   TIME_SLOTS.forEach(slot => {
     const taken = getSeatsTakenByTimeSlot(slot.id);
     const usedCount = Object.keys(taken).length;
-    const slotOrders = ORDERS.filter(o => o.timeSlot === slot.id);
+    const allSlotOrders = ORDERS.filter(o => o.timeSlot === slot.id);
+    const slotOrders = canSeeAllOrders() ? allSlotOrders : allSlotOrders.filter(o => o.ownerId === (CURRENT_USER && CURRENT_USER.username));
     const slotAmount = slotOrders.reduce((sum, o) => sum + calcTotal(o), 0);
     const div = document.createElement('div');
     div.className = 'overview-time';
