@@ -994,7 +994,7 @@ function resetForm() {
 async function deleteOrder(id) {
   showModal('確認刪除', '確定要刪除這筆訂單嗎？', async () => {
     if (useFirebase && db) {
-      try { showLoading('刪除中...'); await deleteDoc(doc(db, 'orders', id)); showToast('訂單已刪除', 'success'); }
+      try { showLoading('刪除中...'); await deleteDoc(doc(db, 'orders', id)); ORDERS = ORDERS.filter(o => o.id !== id); renderAll(); refreshActiveTab(); showToast('訂單已刪除', 'success'); }
       catch (e) { showToast('刪除失敗：' + e.message, 'error'); }
       finally { hideLoading(); }
     } else {
@@ -1269,7 +1269,7 @@ document.getElementById('btnClearAll').addEventListener('click', () => {
     if (useFirebase && db) {
       try {
         showLoading('刪除中...');
-        for (const o of [...ORDERS]) await deleteDoc(doc(db, 'orders', o.id));
+ ORDERS = []; renderAll(); refreshActiveTab();
         showToast('已清空全部訂單', 'success');
       } catch (e) { showToast('刪除失敗：' + e.message, 'error'); }
       finally { hideLoading(); }
