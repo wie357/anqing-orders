@@ -940,46 +940,7 @@ async function saveCurrentOrder() {
         showToast('訂單已更新', 'success');
       } else {
         orderData.createdAt = serverTimestamp();
-        await } else {
-  orderData.createdAt = serverTimestamp();
-  await addDoc(collection(db, 'orders'), orderData);
-        
-        // 通知 LINE
-        fetch('https://hook.eu1.make.com/p4pzicwbu2ysx89z6owom8q5wrsnmxum', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({
-            code: orderData.code,
-            schoolName: orderData.schoolName,
-            contact: orderData.contact,
-            phone: orderData.phone,
-            timeSlot: orderData.timeSlot,
-            meals: orderData.meals,
-            seats: orderData.seats,
-            selectedSeats: orderData.selectedSeats,
-            ownerId: orderData.ownerId
-          })
-        }).catch(e => console.error('LINE 通知失敗:', e));
-  
-  // 🆕 通知 LINE（透過 Make.com Webhook）
-  fetch('https://hook.eu1.make.com/p4pzicwbu2ysx89z6owom8q5wrsnmxum', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({
-      code: orderData.code,
-      schoolName: orderData.schoolName,
-      contact: orderData.contact,
-      phone: orderData.phone,
-      timeSlot: orderData.timeSlot,
-      meals: orderData.meals,
-      seats: orderData.seats,
-      selectedSeats: orderData.selectedSeats,
-      ownerId: orderData.ownerId
-    })
-  }).catch(e => console.error('LINE 通知失敗:', e));
-  
-  showToast(`訂單已儲存（代號 ${orderData.code}）`, 'success');
-};
+        await addDoc(collection(db, 'orders'), orderData);
         showToast(`訂單已儲存（代號 ${orderData.code}）`, 'success');
       }
     } catch (e) {
