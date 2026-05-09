@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>115年7月8月安親班團體訂餐系統</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Microsoft JhengHei", "PingFang TC", "Segoe UI", sans-serif; background: #fff8f0; color: #333; line-height: 1.6; min-height: 100vh; }
+.container { max-width: 1280px; margin: 0 auto; padding: 16px; }
+header { background: linear-gradient(135deg, #ff6b35, #f7931e); color: white; padding: 28px 20px; text-align: center; border-radius: 14px; margin-bottom: 18px; box-shadow: 0 4px 12px rgba(255,107,53,0.25); }
+header h1 { font-size: clamp(20px, 4vw, 30px); margin-bottom: 6px; letter-spacing: 1px; }
+header .sub { opacity: 0.95; font-size: 14px; }
+header .cloud-status { display: inline-block; margin-top: 8px; padding: 4px 12px; background: rgba(255,255,255,0.2); border-radius: 12px; font-size: 12px; }
+header .cloud-status.online { background: rgba(45, 198, 83, 0.4); }
+header .cloud-status.offline { background: rgba(220, 53, 69, 0.4); }
+
+.tabs { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+.tab-btn { flex: 1; min-width: 130px; padding: 14px 16px; background: white; border: 2px solid #e5d5c0; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 15px; transition: all 0.2s; color: #555; }
+.tab-btn.active { background: #ff6b35; color: white; border-color: #ff6b35; box-shadow: 0 4px 8px rgba(255,107,53,0.25); }
+.tab-btn:hover:not(.active) { background: #fff3e6; }
+.tab-content { display: none; }
+.tab-content.active { display: block; animation: fadeIn 0.3s; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+.section { background: white; border-radius: 12px; padding: 22px; margin-bottom: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+.section h2 { font-size: 17px; margin-bottom: 14px; color: #ff6b35; border-left: 5px solid #ff6b35; padding-left: 12px; }
+
+.setup-banner { background: linear-gradient(135deg, #fff3e6, #ffe4cc); border: 2px dashed #ff6b35; padding: 20px; border-radius: 12px; margin-bottom: 14px; }
+.setup-banner h3 { color: #ff6b35; margin-bottom: 8px; }
+.setup-banner p { font-size: 14px; color: #555; margin-bottom: 8px; }
+.setup-banner ol { margin-left: 22px; font-size: 13px; color: #555; line-height: 1.8; }
+.setup-banner code { background: #fff; padding: 2px 6px; border-radius: 4px; font-size: 12px; color: #d84315; }
+
+.form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.form-group { display: flex; flex-direction: column; }
+.form-group label { font-weight: 600; margin-bottom: 6px; font-size: 14px; color: #555; }
+.form-group label .required { color: #dc3545; margin-left: 2px; }
+.form-group input, .form-group select { padding: 11px 12px; border: 2px solid #e5d5c0; border-radius: 8px; font-size: 15px; transition: border-color 0.2s; font-family: inherit; }
+.form-group input:focus, .form-group select:focus { border-color: #ff6b35; outline: none; }
+
+.time-slots { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+.time-slot-card { padding: 18px; border: 2px solid #e5d5c0; border-radius: 10px; cursor: pointer; text-align: center; background: white; transition: all 0.2s; }
+.time-slot-card:hover { background: #fff3e6; }
+.time-slot-card.selected { background: linear-gradient(135deg, #ff6b35, #f7931e); color: white; border-color: #ff6b35; }
+.time-slot-card .time { font-size: 19px; font-weight: 700; }
+.time-slot-card .info { font-size: 12px; margin-top: 4px; opacity: 0.85; }
+
+.meal-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.meal-card { border: 2px solid #e5d5c0; border-radius: 10px; padding: 14px; background: #fffaf3; display: flex; flex-direction: column; }
+.meal-card.combo { border-color: #ffb74d; }
+.meal-card.seat-only { border-color: #81c784; background: #f1f8e9; }
+.meal-card .code { display: inline-block; background: #ff6b35; color: white; padding: 4px 12px; border-radius: 6px; font-weight: 700; margin-bottom: 8px; font-size: 14px; width: fit-content; }
+.meal-card.seat-only .code { background: #2dc653; }
+.meal-card .name { font-weight: 600; margin-bottom: 4px; font-size: 14px; }
+.meal-card .price { font-size: 12px; color: #888; margin-bottom: 8px; }
+.meal-card .price strong { color: #ff6b35; font-size: 14px; }
+.meal-card.seat-only .price strong { color: #2dc653; }
+.meal-card .qty-row { display: flex; align-items: center; gap: 8px; margin-top: auto; }
+.qty-btn { width: 36px; height: 36px; border: 2px solid #e5d5c0; background: white; border-radius: 8px; font-size: 18px; font-weight: 700; cursor: pointer; user-select: none; transition: all 0.15s; }
+.qty-btn:hover { background: #fff3e6; border-color: #ff6b35; color: #ff6b35; }
+.qty-btn:active { transform: scale(0.95); }
+.qty-input { flex: 1; text-align: center; font-size: 17px; font-weight: 700; padding: 8px; border: 2px solid #e5d5c0; border-radius: 8px; font-family: inherit; -moz-appearance: textfield; }
+.qty-input::-webkit-outer-spin-button, .qty-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.teacher-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; padding-top: 8px; border-top: 1px dashed #ddd; }
+.teacher-row label { font-size: 12px; color: #777; flex: 1; }
+.teacher-row input { width: 64px; padding: 6px; border: 1px solid #e5d5c0; border-radius: 6px; text-align: center; font-family: inherit; font-size: 14px; }
+
+.seatmap-container { background: linear-gradient(180deg, #fffaf3, #fff8f0); border-radius: 12px; padding: 20px; overflow-x: auto; border: 2px dashed #e5d5c0; }
+.seatmap-stage { background: linear-gradient(135deg, #4caf50, #2dc653); color: white; text-align: center; padding: 8px; border-radius: 8px; margin-bottom: 22px; font-weight: 600; font-size: 13px; letter-spacing: 2px; }
+.tables-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px 18px; min-width: 720px; }
+.long-table { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.long-table .seats-row { display: flex; gap: 6px; flex-wrap: nowrap; justify-content: center; }
+.long-table .table-body { width: 100%; background: linear-gradient(180deg, #b5905e, #8b6f47); color: white; text-align: center; padding: 12px 6px; border-radius: 6px; font-weight: 700; font-size: 13px; box-shadow: 0 2px 4px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.2); letter-spacing: 1px; }
+.seat { width: 36px; height: 36px; border-radius: 50%; background: white; border: 2px solid #b5a795; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #666; transition: all 0.15s; position: relative; flex-shrink: 0; }
+.seat:hover:not(.taken) { transform: scale(1.15); border-color: #ff6b35; box-shadow: 0 2px 6px rgba(255,107,53,0.3); }
+.seat.selected { background: #ff6b35; border-color: #d84315; color: white; transform: scale(1.05); }
+.seat.taken { cursor: not-allowed; color: white; border-color: rgba(0,0,0,0.2); font-size: 10px; }
+.seat.taken-tooltip:hover::after { content: attr(data-tooltip); position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px; white-space: nowrap; z-index: 10; margin-bottom: 4px; }
+
+.summary-bar { position: sticky; bottom: 12px; background: white; border: 3px solid #ff6b35; padding: 16px 22px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 20px; box-shadow: 0 6px 18px rgba(0,0,0,0.12); border-radius: 14px; z-index: 5; }
+.summary-info { display: flex; gap: 22px; flex-wrap: wrap; }
+.summary-stat .label { font-size: 12px; color: #888; }
+.summary-stat .value { font-size: 20px; font-weight: 700; color: #333; }
+.summary-stat.total .value { color: #ff6b35; font-size: 28px; }
+.summary-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.btn { padding: 11px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; transition: all 0.2s; font-family: inherit; }
+.btn:active { transform: scale(0.98); }
+.btn-primary { background: #ff6b35; color: white; }
+.btn-primary:hover { background: #e55a25; }
+.btn-secondary { background: #e5d5c0; color: #333; }
+.btn-secondary:hover { background: #d6c2a8; }
+.btn-danger { background: #dc3545; color: white; }
+.btn-danger:hover { background: #c82333; }
+.btn-success { background: #2dc653; color: white; }
+.btn-success:hover { background: #25a244; }
+.btn-info { background: #1976d2; color: white; }
+.btn-info:hover { background: #1565c0; }
+.btn-sm { padding: 6px 12px; font-size: 13px; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; margin-bottom: 12px; padding: 10px; background: white; border-radius: 8px; border: 1px solid #e5d5c0; }
+.legend-item { display: flex; align-items: center; gap: 6px; }
+.legend-dot { width: 18px; height: 18px; border-radius: 50%; border: 2px solid #b5a795; flex-shrink: 0; }
+
+.orders-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.orders-table th, .orders-table td { padding: 11px 10px; text-align: left; border-bottom: 1px solid #e5d5c0; }
+.orders-table th { background: #fff3e6; font-weight: 600; color: #555; }
+.orders-table tbody tr:hover { background: #fffaf3; }
+.orders-table td.actions { white-space: nowrap; }
+.order-code-tag { display: inline-block; width: 32px; height: 32px; line-height: 28px; border-radius: 50%; text-align: center; font-weight: 800; color: white; font-size: 14px; border: 2px solid rgba(255,255,255,0.4); box-shadow: 0 2px 4px rgba(0,0,0,0.15); }
+
+.time-tag { display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; color: white; }
+.time-tag.t1 { background: #ff6b35; }
+.time-tag.t2 { background: #2dc653; }
+.time-tag.t3 { background: #1976d2; }
+
+.empty-state { text-align: center; padding: 40px 20px; color: #999; }
+.empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+
+.modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; padding: 20px; }
+.modal.show { display: flex; }
+.modal-content { background: white; padding: 24px; border-radius: 12px; max-width: 480px; width: 100%; text-align: center; }
+.modal-content h3 { margin-bottom: 12px; color: #ff6b35; }
+.modal-content p { margin-bottom: 18px; color: #555; }
+.modal-actions { display: flex; gap: 8px; justify-content: center; }
+
+.toast { position: fixed; top: 20px; right: 20px; background: #2dc653; color: white; padding: 12px 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 200; opacity: 0; transition: opacity 0.3s; font-weight: 600; }
+.toast.show { opacity: 1; }
+.toast.error { background: #dc3545; }
+
+.overview-grid { display: grid; grid-template-columns: 1fr; gap: 18px; }
+.overview-time { padding: 14px; background: #fffaf3; border-radius: 10px; border: 1px solid #e5d5c0; }
+.overview-time h3 { font-size: 16px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+.overview-time .stats { display: flex; gap: 20px; flex-wrap: wrap; font-size: 13px; color: #666; margin-bottom: 12px; }
+.overview-time .stats strong { color: #333; }
+.school-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; font-size: 13px; }
+.school-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px 4px 4px; background: white; border-radius: 16px; border: 1px solid #e5d5c0; }
+.school-chip .code-dot { width: 24px; height: 24px; border-radius: 50%; color: white; font-weight: 800; font-size: 12px; text-align: center; line-height: 22px; }
+
+.print-card { background: white; padding: 20px; border-radius: 8px; border: 1px solid #ddd; }
+.print-card h2 { font-size: 22px; text-align: center; border-bottom: 2px solid #ff6b35; padding-bottom: 8px; margin-bottom: 12px; }
+.print-card .info-row { display: grid; grid-template-columns: 120px 1fr; gap: 8px; margin-bottom: 6px; padding: 6px 0; border-bottom: 1px dashed #eee; }
+.print-card .info-row .label { font-weight: 700; color: #555; }
+.print-card table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+.print-card th, .print-card td { padding: 8px; border: 1px solid #ddd; text-align: left; font-size: 13px; }
+.print-card th { background: #fff3e6; }
+.print-card .total-line { text-align: right; font-size: 18px; font-weight: 700; color: #ff6b35; padding: 12px; }
+
+.loading-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.9); display: none; align-items: center; justify-content: center; z-index: 300; flex-direction: column; gap: 12px; }
+.loading-overlay.show { display: flex; }
+.spinner { width: 40px; height: 40px; border: 4px solid #fff3e6; border-top-color: #ff6b35; border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media print {
+  body { background: white; }
+  .container { padding: 0; max-width: 100%; }
+  header, .tabs, .summary-bar, .no-print { display: none !important; }
+  .section { box-shadow: none; padding: 0; margin: 0; }
+  .tab-content:not(.active) { display: none !important; }
+  .print-only { display: block; }
+  .seat { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .seatmap-container { page-break-inside: avoid; padding: 12px; border: 1px solid #ccc; background: white !important; }
+  .seatmap-stage { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .meal-card, .time-slot-card, .order-code-tag { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .overview-time { page-break-inside: avoid; background: white !important; border: 1px solid #ddd !important; }
+  .table-body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .school-chip { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+}
+.print-only { display: none; }
+
+@media (max-width: 768px) {
+  .tables-grid { grid-template-columns: repeat(2, 1fr); min-width: 100%; gap: 24px 12px; }
+  .summary-bar { flex-direction: column; align-items: stretch; }
+  .summary-info { justify-content: space-between; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+<header class="no-print">
+  <h1>🍱 115年7月8月安親班團體訂餐</h1>
+  <div class="sub">大新店游泳池親子俱樂部 · 暑期安親團體訂餐系統</div>
+  <div class="cloud-status" id="cloudStatus">⏳ 連線中...</div>
+</header>
+
+<div id="setupBanner" class="setup-banner no-print" style="display:none;">
+  <h3>⚙️ 首次使用：請設定 Firebase 雲端資料庫</h3>
+  <p>請開啟 HTML 原始碼，將檔案中標示為 <code>FIREBASE_CONFIG</code> 的區塊填入你從 Firebase Console 取得的設定值。</p>
+  <ol>
+    <li>到 <a href="https://console.firebase.google.com" target="_blank">Firebase Console</a> 建立新專案</li>
+    <li>新增 Web App（齒輪圖示 → 專案設定 → 應用程式 → 新增 Web 應用程式）</li>
+    <li>複製 <code>firebaseConfig</code> 物件中的所有欄位</li>
+    <li>到「Firestore Database」→「建立資料庫」→「測試模式」</li>
+    <li>把設定值貼回此 HTML 檔的 <code>FIREBASE_CONFIG</code> 區塊</li>
+    <li>重新整理本頁</li>
+  </ol>
+  <p style="margin-top:10px; padding:10px; background:white; border-radius:6px; font-size:12px;">
+    📖 詳細步驟請參考同資料夾中的 <code>部署說明.md</code> 文件。
+  </p>
+</div>
+
+<div class="tabs no-print">
+  <button class="tab-btn active" data-tab="new">📝 新增訂單</button>
+  <button class="tab-btn" data-tab="manage">📋 訂單管理</button>
+  <button class="tab-btn" data-tab="overview">🪑 座位總覽</button>
+</div>
+
+<div class="tab-content active" id="tab-new">
+
+  <div class="section">
+    <h2>① 安親班基本資料</h2>
+    <div class="form-row">
+      <div class="form-group"><label>安親班名稱<span class="required">*</span></label><input type="text" id="schoolName" placeholder="例：陽光安親班"></div>
+      <div class="form-group"><label>聯絡人<span class="required">*</span></label><input type="text" id="contact" placeholder="例：王老師"></div>
+      <div class="form-group"><label>聯絡手機<span class="required">*</span></label><input type="tel" id="phone" placeholder="例：0912-345-678"></div>
+    </div>
+    <div id="orderCodeBox" style="margin-top:10px; font-size:13px; color:#888;"></div>
+  </div>
+
+  <div class="section">
+    <h2>② 用餐時段（每梯次 30 分鐘）</h2>
+    <div class="time-slots" id="timeSlots"></div>
+  </div>
+
+  <div class="section">
+    <h2>③ 套餐選擇（每份 120 元）</h2>
+    <div class="meal-grid" id="meals"></div>
+  </div>
+
+  <div class="section">
+    <h2>④ 預約座位區（不另購套餐者）</h2>
+    <p style="font-size: 13px; color: #888; margin-bottom: 12px;">老師陪同入場免清潔費，但仍需佔用座位。</p>
+    <div class="meal-grid" id="seatOnlyOptions"></div>
+  </div>
+
+  <div class="section">
+    <h2>⑤ 座位選擇</h2>
+    <p style="font-size: 13px; color: #555; margin-bottom: 10px;" id="seatHint">請先選擇用餐時段。</p>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:white;"></div>可選（顯示座位編號）</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#ff6b35; border-color:#d84315;"></div>本次選取（顯示我的順序）</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#999;"></div>已被預訂（顯示訂單代號）</div>
+    </div>
+    <div class="seatmap-container" id="seatmapContainer">
+      <div class="seatmap-stage">━━━━━ 餐廳前方 / 取餐區 ━━━━━</div>
+      <div class="tables-grid" id="seatmap"></div>
+    </div>
+  </div>
+
+  <div class="summary-bar no-print">
+    <div class="summary-info">
+      <div class="summary-stat"><div class="label">總人數</div><div class="value" id="totalPeople">0</div></div>
+      <div class="summary-stat"><div class="label">已選座位</div><div class="value" id="selectedSeats">0</div></div>
+      <div class="summary-stat total"><div class="label">應付總額</div><div class="value">$<span id="totalAmount">0</span></div></div>
+    </div>
+    <div class="summary-actions">
+      <button class="btn btn-secondary" id="btnReset">清空</button>
+      <button class="btn btn-primary" id="btnSave">💾 儲存訂單</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="tab-content" id="tab-manage">
+  <div class="section">
+    <h2>📋 全部訂單</h2>
+    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
+      <button class="btn btn-success btn-sm" id="btnExportCSV">📤 匯出 CSV</button>
+      <button class="btn btn-info btn-sm" id="btnPrintAll">🖨️ 列印彙總表</button>
+      <button class="btn btn-danger btn-sm" id="btnClearAll">🗑️ 清空全部</button>
+    </div>
+    <div id="ordersList"></div>
+  </div>
+  <div id="printArea" class="print-only"></div>
+</div>
+
+<div class="tab-content" id="tab-overview">
+  <div class="section">
+    <h2>🪑 各時段座位使用情況</h2>
+    <div class="overview-grid" id="overviewGrid"></div>
+  </div>
+</div>
+
+</div>
+
+<div class="modal" id="modal">
+  <div class="modal-content">
+    <h3 id="modalTitle">確認</h3>
+    <p id="modalMessage"></p>
+    <div class="modal-actions"><button class="btn btn-secondary" id="modalCancel">取消</button><button class="btn btn-primary" id="modalConfirm">確定</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <div id="loadingText" style="font-weight: 600; color: #555;">載入中...</div>
+</div>
+
+<script type="module">
+// ============================================================
+// ⚙️  FIREBASE_CONFIG ─ 請貼上你從 Firebase Console 取得的設定值
+// ============================================================
+// 步驟：
+//   1. 前往 https://console.firebase.google.com
+//   2. 建立專案 → 新增 Web App → 複製 firebaseConfig
+//   3. 把下方 6 個欄位的 "YOUR_..." 換成你的值
+//   4. Firestore Database → 建立資料庫（測試模式）
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyDBgRkF29tZ88YFMd0PLh6QH71qhJ3eHCM",
+  authDomain: "anqing-orders-2026.firebaseapp.com",
+  projectId: "anqing-orders-2026",
+  storageBucket: "anqing-orders-2026.firebasestorage.app",
+  messagingSenderId: "995011167755",
+  appId: "1:995011167755:web:87dd7afedf012eeec9a90e"
+};
+// ============================================================
+
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js';
+import { getFirestore, collection, doc, setDoc, addDoc, deleteDoc, onSnapshot, serverTimestamp, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
+
+// ==================== 設定 ====================
+const TABLE_CONFIG = [
+  { id: 'A', count: 6, start: 1 }, { id: 'B', count: 7, start: 7 },
+  { id: 'C', count: 7, start: 14 }, { id: 'D', count: 6, start: 21 },
+  { id: 'E', count: 6, start: 27 }, { id: 'F', count: 6, start: 33 },
+  { id: 'G', count: 6, start: 39 }, { id: 'H', count: 6, start: 45 }
+];
+const TOTAL_SEATS = 50;
+const TIME_SLOTS = [
+  { id: '11:30-12:00', label: '11:30 - 12:00', tag: 't1' },
+  { id: '12:10-12:40', label: '12:10 - 12:40', tag: 't2' },
+  { id: '12:50-13:20', label: '12:50 - 13:20', tag: 't3' }
+];
+const MEALS = [
+  { code: 'A', name: '起司雞肉捲套餐', desc: '起司雞肉捲 + 2塊小雞塊 + 小薯條 + 冬瓜茶暢飲', price: 120 },
+  { code: 'B', name: '起司燻雞派套餐', desc: '起司燻雞派 + 2塊小雞塊 + 小薯條 + 冬瓜茶暢飲', price: 120 },
+  { code: 'C', name: '招牌便當套餐', desc: '代訂便當（招牌便當）+ 冬瓜茶暢飲', price: 120 }
+];
+const SEAT_ONLY = [
+  { code: 'D', name: '預約座位區', desc: '每人 30 元清潔費（老師免費）', price: 30 },
+  { code: 'E', name: '預約座位區 + 冬瓜茶', desc: '每人 40 元（老師免費）', price: 40 }
+];
+const COLORS = ['#ff6b35','#2dc653','#1976d2','#9c27b0','#e91e63','#00bcd4','#ff9800','#795548','#4caf50','#3f51b5','#ffc107','#009688','#673ab7','#f44336','#03a9f4'];
+
+// ==================== 狀態 ====================
+let ORDERS = [];
+let editingOrderId = null;
+let currentOrder = newOrderTemplate();
+let db = null;
+let firstLoad = true;
+const LOCAL_KEY = 'orderbook_115_summer_v2_local';
+let useFirebase = false;
+
+function newOrderTemplate() {
+  return {
+    id: null, code: '',
+    schoolName: '', contact: '', phone: '',
+    timeSlot: '',
+    meals: { A: 0, B: 0, C: 0 },
+    seats: { D_students: 0, D_teachers: 0, E_students: 0, E_teachers: 0 },
+    selectedSeats: [],
+    createdAt: null
+  };
+}
+
+// ==================== Firebase 初始化 ====================
+function isConfigured() {
+  return !Object.values(FIREBASE_CONFIG).some(v => typeof v === 'string' && v.startsWith('YOUR_'));
+}
+
+function setCloudStatus(text, klass) {
+  const el = document.getElementById('cloudStatus');
+  el.className = 'cloud-status ' + klass;
+  el.textContent = text;
+}
+
+if (isConfigured()) {
+  try {
+    const app = initializeApp(FIREBASE_CONFIG);
+    db = getFirestore(app);
+    useFirebase = true;
+    setCloudStatus('☁️ 已連線雲端', 'online');
+    subscribeOrders();
+  } catch (e) {
+    console.error(e);
+    setCloudStatus('⚠️ Firebase 設定錯誤，使用本機模式', 'offline');
+    useFirebase = false;
+    fallbackLocal();
+  }
+} else {
+  document.getElementById('setupBanner').style.display = 'block';
+  setCloudStatus('💾 本機模式（未設定 Firebase）', 'offline');
+  fallbackLocal();
+}
+
+function fallbackLocal() {
+  try { ORDERS = JSON.parse(localStorage.getItem(LOCAL_KEY) || '[]'); }
+  catch(e) { ORDERS = []; }
+  ensureCodes();
+  renderAll();
+}
+function saveLocal() { localStorage.setItem(LOCAL_KEY, JSON.stringify(ORDERS)); }
+
+function subscribeOrders() {
+  showLoading('正在連線雲端...');
+  const q = query(collection(db, 'orders'), orderBy('createdAt', 'asc'));
+  onSnapshot(q, (snapshot) => {
+    ORDERS = snapshot.docs.map(d => {
+      const data = d.data();
+      return { ...data, id: d.id, createdAt: data.createdAt?.toMillis ? data.createdAt.toMillis() : data.createdAt || Date.now() };
+    });
+    ensureCodes();
+    if (firstLoad) { firstLoad = false; hideLoading(); }
+    renderAll();
+    refreshActiveTab();
+  }, (err) => {
+    console.error(err);
+    hideLoading();
+    setCloudStatus('❌ 雲端連線失敗', 'offline');
+    showToast('雲端連線失敗：' + err.message, 'error');
+  });
+}
+
+function ensureCodes() {
+  const used = new Set(ORDERS.map(o => o.code).filter(Boolean));
+  ORDERS.forEach(o => {
+    if (!o.code) {
+      o.code = nextAvailableCode(used);
+      used.add(o.code);
+    }
+  });
+}
+
+function nextAvailableCode(usedSet) {
+  for (let i = 0; i < 26; i++) {
+    const c = String.fromCharCode(65 + i);
+    if (!usedSet.has(c)) return c;
+  }
+  for (let i = 0; i < 26; i++) {
+    for (let j = 0; j < 26; j++) {
+      const c = String.fromCharCode(65+i) + String.fromCharCode(65+j);
+      if (!usedSet.has(c)) return c;
+    }
+  }
+  return 'X' + Date.now();
+}
+function generateNextCode() {
+  const used = new Set(ORDERS.map(o => o.code).filter(Boolean));
+  return nextAvailableCode(used);
+}
+function getOrderColor(code) {
+  if (!code) return '#888';
+  return COLORS[(code.charCodeAt(0) - 65) % COLORS.length];
+}
+
+// ==================== 計算 ====================
+function calcTotal(o) {
+  return o.meals.A * 120 + o.meals.B * 120 + o.meals.C * 120 + o.seats.D_students * 30 + o.seats.E_students * 40;
+}
+function totalPeople(o) {
+  return o.meals.A + o.meals.B + o.meals.C + o.seats.D_students + o.seats.D_teachers + o.seats.E_students + o.seats.E_teachers;
+}
+function getSeatsTakenByTimeSlot(timeSlot, excludeOrderId = null) {
+  const taken = {};
+  ORDERS.forEach(order => {
+    if (order.id === excludeOrderId) return;
+    if (order.timeSlot !== timeSlot) return;
+    const color = getOrderColor(order.code);
+    order.selectedSeats.forEach((seatNum, position) => {
+      taken[seatNum] = { orderId: order.id, schoolName: order.schoolName, code: order.code, color, position: position + 1 };
+    });
+  });
+  return taken;
+}
+
+// ==================== 渲染 ====================
+function renderTimeSlots() {
+  const container = document.getElementById('timeSlots');
+  container.innerHTML = '';
+  TIME_SLOTS.forEach(slot => {
+    const taken = getSeatsTakenByTimeSlot(slot.id, editingOrderId);
+    const usedCount = Object.keys(taken).length;
+    const card = document.createElement('div');
+    card.className = 'time-slot-card' + (currentOrder.timeSlot === slot.id ? ' selected' : '');
+    card.innerHTML = `<div class="time">${slot.label}</div><div class="info">剩餘座位：${TOTAL_SEATS - usedCount} / ${TOTAL_SEATS}</div>`;
+    card.addEventListener('click', () => {
+      currentOrder.timeSlot = slot.id;
+      currentOrder.selectedSeats = [];
+      renderTimeSlots();
+      renderSeatmap();
+      updateSummary();
+    });
+    container.appendChild(card);
+  });
+}
+function renderMeals() {
+  const container = document.getElementById('meals');
+  container.innerHTML = '';
+  MEALS.forEach(meal => {
+    const card = document.createElement('div');
+    card.className = 'meal-card combo';
+    card.innerHTML = `<span class="code">${meal.code}</span><div class="name">${meal.name}</div><div class="price">${meal.desc} · <strong>$${meal.price}</strong></div>
+      <div class="qty-row"><button class="qty-btn" data-action="dec" data-meal="${meal.code}">−</button>
+      <input type="number" class="qty-input" min="0" value="${currentOrder.meals[meal.code]}" data-meal="${meal.code}">
+      <button class="qty-btn" data-action="inc" data-meal="${meal.code}">+</button></div>`;
+    container.appendChild(card);
+  });
+  container.querySelectorAll('.qty-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const code = btn.dataset.meal;
+      let v = currentOrder.meals[code] || 0;
+      v = btn.dataset.action === 'inc' ? v + 1 : Math.max(0, v - 1);
+      currentOrder.meals[code] = v;
+      const input = container.querySelector(`.qty-input[data-meal="${code}"]`);
+      if (input) input.value = v;
+      updateSummary();
+    });
+  });
+  container.querySelectorAll('.qty-input').forEach(input => {
+    input.addEventListener('input', () => { currentOrder.meals[input.dataset.meal] = Math.max(0, parseInt(input.value) || 0); updateSummary(); });
+  });
+}
+function renderSeatOnly() {
+  const container = document.getElementById('seatOnlyOptions');
+  container.innerHTML = '';
+  SEAT_ONLY.forEach(opt => {
+    const sKey = opt.code + '_students'; const tKey = opt.code + '_teachers';
+    const card = document.createElement('div');
+    card.className = 'meal-card seat-only';
+    card.innerHTML = `<span class="code">${opt.code}</span><div class="name">${opt.name}</div><div class="price">${opt.desc} · <strong>$${opt.price}</strong></div>
+      <div class="qty-row"><button class="qty-btn" data-action="dec" data-key="${sKey}">−</button>
+      <input type="number" class="qty-input" min="0" value="${currentOrder.seats[sKey]}" data-key="${sKey}">
+      <button class="qty-btn" data-action="inc" data-key="${sKey}">+</button></div>
+      <div class="teacher-row"><label>👩‍🏫 老師人數（免費）</label><input type="number" min="0" value="${currentOrder.seats[tKey]}" data-key="${tKey}"></div>`;
+    container.appendChild(card);
+  });
+  container.querySelectorAll('.qty-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const key = btn.dataset.key;
+      let v = currentOrder.seats[key] || 0;
+      v = btn.dataset.action === 'inc' ? v + 1 : Math.max(0, v - 1);
+      currentOrder.seats[key] = v;
+      const input = container.querySelector(`.qty-input[data-key="${key}"]`);
+      if (input) input.value = v;
+      updateSummary();
+    });
+  });
+  container.querySelectorAll('input[type="number"]').forEach(input => {
+    input.addEventListener('input', () => { currentOrder.seats[input.dataset.key] = Math.max(0, parseInt(input.value) || 0); updateSummary(); });
+  });
+}
+function renderSeatmap() {
+  const container = document.getElementById('seatmap');
+  container.innerHTML = '';
+  const hint = document.getElementById('seatHint');
+  if (!currentOrder.timeSlot) { hint.textContent = '⚠️ 請先選擇用餐時段。'; hint.style.color = '#dc3545'; return; }
+  const need = totalPeople(currentOrder);
+  const slotLabel = TIME_SLOTS.find(s => s.id === currentOrder.timeSlot).label;
+  hint.innerHTML = `📍 用餐時段：<strong>${slotLabel}</strong> · 需要座位：<strong>${need}</strong> · 已選：<strong>${currentOrder.selectedSeats.length}</strong>`;
+  hint.style.color = (need === currentOrder.selectedSeats.length && need > 0) ? '#2dc653' : '#555';
+  const taken = getSeatsTakenByTimeSlot(currentOrder.timeSlot, editingOrderId);
+  const previewCode = currentOrder.code || generateNextCode();
+  TABLE_CONFIG.forEach(table => {
+    const tbl = document.createElement('div'); tbl.className = 'long-table';
+    const half1 = Math.ceil(table.count / 2);
+    const topRow = document.createElement('div'); topRow.className = 'seats-row';
+    for (let i = 0; i < half1; i++) topRow.appendChild(makeSeat(table.start + i, taken, true, previewCode));
+    tbl.appendChild(topRow);
+    const body = document.createElement('div'); body.className = 'table-body'; body.textContent = `桌 ${table.id}`;
+    tbl.appendChild(body);
+    const botRow = document.createElement('div'); botRow.className = 'seats-row';
+    for (let i = half1; i < table.count; i++) botRow.appendChild(makeSeat(table.start + i, taken, true, previewCode));
+    tbl.appendChild(botRow);
+    container.appendChild(tbl);
+  });
+}
+function makeSeat(seatNum, taken, interactive, previewCode) {
+  const el = document.createElement('div');
+  el.className = 'seat';
+  el.dataset.seat = seatNum;
+  if (taken[seatNum]) {
+    el.classList.add('taken', 'taken-tooltip');
+    el.style.background = taken[seatNum].color;
+    el.style.borderColor = taken[seatNum].color;
+    el.textContent = taken[seatNum].code + taken[seatNum].position;
+    el.dataset.tooltip = `${taken[seatNum].schoolName} · 座位${seatNum}`;
+  } else {
+    const idx = currentOrder.selectedSeats.indexOf(seatNum);
+    if (idx >= 0) {
+      el.classList.add('selected');
+      el.textContent = (currentOrder.code || previewCode) + (idx + 1);
+      el.dataset.tooltip = `座位 ${seatNum}`;
+      el.classList.add('taken-tooltip');
+    } else { el.textContent = seatNum; }
+  }
+  if (interactive) {
+    el.addEventListener('click', () => {
+      if (taken[seatNum]) return;
+      const idx = currentOrder.selectedSeats.indexOf(seatNum);
+      if (idx >= 0) { currentOrder.selectedSeats.splice(idx, 1); }
+      else {
+        const need = totalPeople(currentOrder);
+        if (currentOrder.selectedSeats.length >= need && need > 0) { showToast(`已選滿 ${need} 個座位，如需修改請先取消。`, 'error'); return; }
+        currentOrder.selectedSeats.push(seatNum);
+      }
+      renderSeatmap();
+      updateSummary();
+    });
+  }
+  return el;
+}
+function makeDisplaySeat(seatNum, taken) {
+  const el = document.createElement('div');
+  el.className = 'seat';
+  if (taken[seatNum]) {
+    el.classList.add('taken', 'taken-tooltip');
+    el.style.background = taken[seatNum].color;
+    el.style.borderColor = taken[seatNum].color;
+    el.textContent = taken[seatNum].code + taken[seatNum].position;
+    el.dataset.tooltip = `${taken[seatNum].schoolName} · 座位${seatNum}`;
+    el.style.cursor = 'default';
+  } else { el.textContent = seatNum; el.style.cursor = 'default'; }
+  return el;
+}
+function buildSeatmapDOM(timeSlot) {
+  const wrap = document.createElement('div');
+  wrap.className = 'seatmap-container';
+  wrap.innerHTML = '<div class="seatmap-stage">━━━ 餐廳前方 / 取餐區 ━━━</div>';
+  const grid = document.createElement('div'); grid.className = 'tables-grid';
+  const taken = getSeatsTakenByTimeSlot(timeSlot);
+  TABLE_CONFIG.forEach(table => {
+    const tbl = document.createElement('div'); tbl.className = 'long-table';
+    const half1 = Math.ceil(table.count / 2);
+    const topRow = document.createElement('div'); topRow.className = 'seats-row';
+    for (let i = 0; i < half1; i++) topRow.appendChild(makeDisplaySeat(table.start + i, taken));
+    tbl.appendChild(topRow);
+    const body = document.createElement('div'); body.className = 'table-body'; body.textContent = `桌 ${table.id}`;
+    tbl.appendChild(body);
+    const botRow = document.createElement('div'); botRow.className = 'seats-row';
+    for (let i = half1; i < table.count; i++) botRow.appendChild(makeDisplaySeat(table.start + i, taken));
+    tbl.appendChild(botRow);
+    grid.appendChild(tbl);
+  });
+  wrap.appendChild(grid);
+  return wrap;
+}
+
+function updateSummary() {
+  document.getElementById('totalPeople').textContent = totalPeople(currentOrder);
+  document.getElementById('selectedSeats').textContent = currentOrder.selectedSeats.length;
+  document.getElementById('totalAmount').textContent = calcTotal(currentOrder).toLocaleString();
+  currentOrder.schoolName = document.getElementById('schoolName').value.trim();
+  currentOrder.contact = document.getElementById('contact').value.trim();
+  currentOrder.phone = document.getElementById('phone').value.trim();
+  const code = currentOrder.code || generateNextCode();
+  const box = document.getElementById('orderCodeBox');
+  if (currentOrder.code) { box.innerHTML = `📌 訂單代號：<strong style="color:${getOrderColor(currentOrder.code)};">${currentOrder.code}</strong>（編輯中）`; }
+  else { box.innerHTML = `📌 預計分配代號：<strong style="color:${getOrderColor(code)};">${code}</strong>`; }
+}
+
+// ==================== 儲存（雲端 / 本機） ====================
+function validateOrder() {
+  if (!currentOrder.schoolName) return '請輸入安親班名稱';
+  if (!currentOrder.contact) return '請輸入聯絡人';
+  if (!currentOrder.phone) return '請輸入聯絡手機';
+  if (!currentOrder.timeSlot) return '請選擇用餐時段';
+  const need = totalPeople(currentOrder);
+  if (need === 0) return '請至少訂購一份套餐或座位';
+  if (currentOrder.selectedSeats.length !== need) return `已選座位 ${currentOrder.selectedSeats.length} 個，需要 ${need} 個，請對應人數選滿`;
+  return null;
+}
+
+async function saveCurrentOrder() {
+  updateSummary();
+  const err = validateOrder();
+  if (err) { showToast(err, 'error'); return; }
+
+  const orderData = {
+    code: currentOrder.code || generateNextCode(),
+    schoolName: currentOrder.schoolName, contact: currentOrder.contact, phone: currentOrder.phone,
+    timeSlot: currentOrder.timeSlot,
+    meals: currentOrder.meals, seats: currentOrder.seats,
+    selectedSeats: currentOrder.selectedSeats,
+    createdAt: currentOrder.createdAt || Date.now()
+  };
+
+  if (useFirebase && db) {
+    try {
+      showLoading('儲存中...');
+      if (editingOrderId) {
+        await setDoc(doc(db, 'orders', editingOrderId), orderData);
+        showToast('訂單已更新', 'success');
+      } else {
+        orderData.createdAt = serverTimestamp();
+        await addDoc(collection(db, 'orders'), orderData);
+        showToast(`訂單已儲存（代號 ${orderData.code}）`, 'success');
+      }
+    } catch (e) {
+      console.error(e);
+      showToast('儲存失敗：' + e.message, 'error');
+      return;
+    } finally { hideLoading(); }
+  } else {
+    if (editingOrderId) {
+      const idx = ORDERS.findIndex(o => o.id === editingOrderId);
+      if (idx >= 0) ORDERS[idx] = { ...orderData, id: editingOrderId };
+      showToast('訂單已更新', 'success');
+    } else {
+      orderData.id = 'O' + Date.now();
+      ORDERS.push(orderData);
+      showToast(`訂單已儲存（代號 ${orderData.code}）`, 'success');
+    }
+    saveLocal();
+    renderAll();
+  }
+  resetForm();
+  switchTab('manage');
+}
+
+function resetForm() {
+  currentOrder = newOrderTemplate();
+  editingOrderId = null;
+  document.getElementById('schoolName').value = '';
+  document.getElementById('contact').value = '';
+  document.getElementById('phone').value = '';
+  document.getElementById('btnSave').textContent = '💾 儲存訂單';
+}
+
+async function deleteOrder(id) {
+  showModal('確認刪除', '確定要刪除這筆訂單嗎？', async () => {
+    if (useFirebase && db) {
+      try { showLoading('刪除中...'); await deleteDoc(doc(db, 'orders', id)); showToast('訂單已刪除', 'success'); }
+      catch (e) { showToast('刪除失敗：' + e.message, 'error'); }
+      finally { hideLoading(); }
+    } else {
+      ORDERS = ORDERS.filter(o => o.id !== id);
+      saveLocal(); renderAll();
+      showToast('訂單已刪除', 'success');
+    }
+  });
+}
+
+function editOrder(id) {
+  const o = ORDERS.find(x => x.id === id);
+  if (!o) return;
+  currentOrder = JSON.parse(JSON.stringify(o));
+  editingOrderId = id;
+  document.getElementById('schoolName').value = o.schoolName;
+  document.getElementById('contact').value = o.contact;
+  document.getElementById('phone').value = o.phone;
+  document.getElementById('btnSave').textContent = '💾 更新訂單';
+  switchTab('new');
+  renderAll();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ==================== 訂單管理 ====================
+function renderOrdersList() {
+  const container = document.getElementById('ordersList');
+  if (ORDERS.length === 0) { container.innerHTML = '<div class="empty-state"><div class="icon">📭</div>還沒有訂單</div>'; return; }
+  const sorted = [...ORDERS].sort((a, b) => { if (a.timeSlot !== b.timeSlot) return a.timeSlot.localeCompare(b.timeSlot); return (a.code || '').localeCompare(b.code || ''); });
+  let html = `<div style="overflow-x:auto;"><table class="orders-table"><thead><tr>
+    <th>代號</th><th>時段</th><th>安親班</th><th>聯絡人</th><th>手機</th><th>套餐(A/B/C)</th><th>座位(D/E)</th><th>老師</th><th>總人數</th><th>金額</th><th>操作</th>
+  </tr></thead><tbody>`;
+  sorted.forEach(o => {
+    const slot = TIME_SLOTS.find(s => s.id === o.timeSlot);
+    const color = getOrderColor(o.code);
+    html += `<tr>
+      <td><span class="order-code-tag" style="background:${color};">${o.code || '?'}</span></td>
+      <td><span class="time-tag ${slot ? slot.tag : ''}">${o.timeSlot}</span></td>
+      <td><strong>${escapeHtml(o.schoolName)}</strong></td>
+      <td>${escapeHtml(o.contact)}</td><td>${escapeHtml(o.phone)}</td>
+      <td>${o.meals.A}/${o.meals.B}/${o.meals.C}</td>
+      <td>${o.seats.D_students}/${o.seats.E_students}</td>
+      <td>${o.seats.D_teachers + o.seats.E_teachers}</td>
+      <td>${totalPeople(o)}</td>
+      <td><strong>$${calcTotal(o).toLocaleString()}</strong></td>
+      <td class="actions">
+        <button class="btn btn-sm btn-info" data-action="print" data-id="${o.id}">列印</button>
+        <button class="btn btn-sm btn-secondary" data-action="edit" data-id="${o.id}">編輯</button>
+        <button class="btn btn-sm btn-danger" data-action="del" data-id="${o.id}">刪除</button>
+      </td></tr>`;
+  });
+  html += '</tbody></table></div>';
+  const totalAmount = ORDERS.reduce((sum, o) => sum + calcTotal(o), 0);
+  const totalPpl = ORDERS.reduce((sum, o) => sum + totalPeople(o), 0);
+  html += `<div style="margin-top:14px; padding:14px; background:#fff3e6; border-radius:8px; display:flex; gap:24px; flex-wrap:wrap;">
+    <div>📊 訂單數：<strong>${ORDERS.length}</strong></div>
+    <div>👥 總人數：<strong>${totalPpl}</strong></div>
+    <div>💰 總金額：<strong style="color:#ff6b35;">$${totalAmount.toLocaleString()}</strong></div></div>`;
+  container.innerHTML = html;
+  container.querySelectorAll('button[data-action]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
+      if (btn.dataset.action === 'print') printOrder(id);
+      else if (btn.dataset.action === 'edit') editOrder(id);
+      else if (btn.dataset.action === 'del') deleteOrder(id);
+    });
+  });
+}
+
+function printOrder(id) {
+  const o = ORDERS.find(x => x.id === id); if (!o) return;
+  const html = generateOrderPrintHTML(o);
+  document.getElementById('printArea').innerHTML = html;
+  const mapHolder = document.getElementById('printArea').querySelector('.print-seatmap');
+  if (mapHolder) mapHolder.appendChild(buildSeatmapDOM(o.timeSlot));
+  setTimeout(() => window.print(), 150);
+}
+
+function generateOrderPrintHTML(o) {
+  const date = new Date(o.createdAt).toLocaleString('zh-TW');
+  const color = getOrderColor(o.code);
+  let mealsHtml = '';
+  if (o.meals.A) mealsHtml += `<tr><td>A 起司雞肉捲套餐</td><td>${o.meals.A}</td><td>$120</td><td>$${(o.meals.A*120).toLocaleString()}</td></tr>`;
+  if (o.meals.B) mealsHtml += `<tr><td>B 起司燻雞派套餐</td><td>${o.meals.B}</td><td>$120</td><td>$${(o.meals.B*120).toLocaleString()}</td></tr>`;
+  if (o.meals.C) mealsHtml += `<tr><td>C 招牌便當套餐</td><td>${o.meals.C}</td><td>$120</td><td>$${(o.meals.C*120).toLocaleString()}</td></tr>`;
+  if (o.seats.D_students) mealsHtml += `<tr><td>D 預約座位（學生）</td><td>${o.seats.D_students}</td><td>$30</td><td>$${(o.seats.D_students*30).toLocaleString()}</td></tr>`;
+  if (o.seats.D_teachers) mealsHtml += `<tr><td>D 預約座位（老師）</td><td>${o.seats.D_teachers}</td><td>免費</td><td>$0</td></tr>`;
+  if (o.seats.E_students) mealsHtml += `<tr><td>E 預約座位+冬瓜茶（學生）</td><td>${o.seats.E_students}</td><td>$40</td><td>$${(o.seats.E_students*40).toLocaleString()}</td></tr>`;
+  if (o.seats.E_teachers) mealsHtml += `<tr><td>E 預約座位+冬瓜茶（老師）</td><td>${o.seats.E_teachers}</td><td>免費</td><td>$0</td></tr>`;
+  return `<div class="print-card"><h2>115年7月8月安親班團體訂餐 · 訂單明細</h2>
+    <div style="text-align:center; margin-bottom:14px;">
+      <span class="order-code-tag" style="background:${color}; width:48px; height:48px; line-height:44px; font-size:22px;">${o.code}</span></div>
+    <div class="info-row"><span class="label">訂單編號</span><span>${o.id}</span></div>
+    <div class="info-row"><span class="label">建立時間</span><span>${date}</span></div>
+    <div class="info-row"><span class="label">安親班名稱</span><span><strong>${escapeHtml(o.schoolName)}</strong></span></div>
+    <div class="info-row"><span class="label">聯絡人</span><span>${escapeHtml(o.contact)}</span></div>
+    <div class="info-row"><span class="label">聯絡手機</span><span>${escapeHtml(o.phone)}</span></div>
+    <div class="info-row"><span class="label">用餐時段</span><span><strong>${o.timeSlot}</strong></span></div>
+    <div class="info-row"><span class="label">總人數</span><span>${totalPeople(o)} 人</span></div>
+    <table><thead><tr><th>項目</th><th>數量</th><th>單價</th><th>小計</th></tr></thead><tbody>${mealsHtml}</tbody></table>
+    <div class="total-line">應付總額：$${calcTotal(o).toLocaleString()}</div>
+    <h3 style="margin-top:18px; color:#ff6b35;">📍 座位位置（${o.timeSlot}）</h3>
+    <p style="font-size:13px; color:#666; margin-bottom:10px;">您的座位以 <strong style="color:${color};">${o.code}1, ${o.code}2 ...</strong> 標示</p>
+    <div class="print-seatmap"></div></div>`;
+}
+
+function printAll() {
+  if (ORDERS.length === 0) { showToast('沒有訂單可列印', 'error'); return; }
+  const printArea = document.getElementById('printArea');
+  printArea.innerHTML = '';
+  const card = document.createElement('div'); card.className = 'print-card';
+  card.innerHTML = `<h2>115年7月8月安親班團體訂餐 · 彙總表</h2><p style="text-align:center; color:#666; margin-bottom:12px;">列印時間：${new Date().toLocaleString('zh-TW')}</p>`;
+  TIME_SLOTS.forEach(slot => {
+    const slotOrders = ORDERS.filter(o => o.timeSlot === slot.id).sort((a, b) => (a.code || '').localeCompare(b.code || ''));
+    const section = document.createElement('div');
+    section.style.pageBreakInside = 'avoid'; section.style.marginBottom = '24px'; section.style.paddingTop = '12px';
+    const slotAmount = slotOrders.reduce((sum, o) => sum + calcTotal(o), 0);
+    const slotPpl = slotOrders.reduce((sum, o) => sum + totalPeople(o), 0);
+    const taken = getSeatsTakenByTimeSlot(slot.id);
+    section.innerHTML = `<h3 style="font-size:18px; color:#fff; background:${slot.tag === 't1' ? '#ff6b35' : slot.tag === 't2' ? '#2dc653' : '#1976d2'}; padding:8px 14px; border-radius:6px; margin-bottom:10px;">🕐 用餐時段 ${slot.label}</h3>
+      <div style="font-size:13px; color:#555; margin-bottom:10px;">訂單 <strong>${slotOrders.length}</strong> 筆 · 總人數 <strong>${slotPpl}</strong> · 已用座位 <strong>${Object.keys(taken).length}/${TOTAL_SEATS}</strong> · 金額 <strong style="color:#ff6b35;">$${slotAmount.toLocaleString()}</strong></div>`;
+    if (slotOrders.length > 0) {
+      const tableHtml = `<table style="width:100%; border-collapse:collapse; margin-bottom:12px;"><thead><tr style="background:#fff3e6;">
+        <th style="padding:6px; border:1px solid #ddd;">代號</th><th style="padding:6px; border:1px solid #ddd;">安親班</th>
+        <th style="padding:6px; border:1px solid #ddd;">聯絡人</th><th style="padding:6px; border:1px solid #ddd;">手機</th>
+        <th style="padding:6px; border:1px solid #ddd;">A</th><th style="padding:6px; border:1px solid #ddd;">B</th><th style="padding:6px; border:1px solid #ddd;">C</th>
+        <th style="padding:6px; border:1px solid #ddd;">D學/師</th><th style="padding:6px; border:1px solid #ddd;">E學/師</th>
+        <th style="padding:6px; border:1px solid #ddd;">人數</th><th style="padding:6px; border:1px solid #ddd;">金額</th>
+      </tr></thead><tbody>${slotOrders.map(o => { const c = getOrderColor(o.code);
+        return `<tr><td style="padding:6px; border:1px solid #ddd; text-align:center;"><span class="order-code-tag" style="background:${c}; width:28px; height:28px; line-height:24px; font-size:13px;">${o.code}</span></td>
+          <td style="padding:6px; border:1px solid #ddd;"><strong>${escapeHtml(o.schoolName)}</strong></td>
+          <td style="padding:6px; border:1px solid #ddd;">${escapeHtml(o.contact)}</td>
+          <td style="padding:6px; border:1px solid #ddd;">${escapeHtml(o.phone)}</td>
+          <td style="padding:6px; border:1px solid #ddd; text-align:center;">${o.meals.A}</td>
+          <td style="padding:6px; border:1px solid #ddd; text-align:center;">${o.meals.B}</td>
+          <td style="padding:6px; border:1px solid #ddd; text-align:center;">${o.meals.C}</td>
+          <td style="padding:6px; border:1px solid #ddd; text-align:center;">${o.seats.D_students}/${o.seats.D_teachers}</td>
+          <td style="padding:6px; border:1px solid #ddd; text-align:center;">${o.seats.E_students}/${o.seats.E_teachers}</td>
+          <td style="padding:6px; border:1px solid #ddd; text-align:center;">${totalPeople(o)}</td>
+          <td style="padding:6px; border:1px solid #ddd; text-align:right;"><strong>$${calcTotal(o).toLocaleString()}</strong></td></tr>`;
+        }).join('')}</tbody></table>`;
+      const tWrap = document.createElement('div'); tWrap.innerHTML = tableHtml;
+      section.appendChild(tWrap);
+      const mapHeading = document.createElement('div');
+      mapHeading.style.cssText = 'font-weight:600; margin-bottom:6px; font-size:14px; color:#555;';
+      mapHeading.textContent = '🪑 座位配置圖（座位 1–50，已預訂顯示為「代號+順序」）';
+      section.appendChild(mapHeading);
+      section.appendChild(buildSeatmapDOM(slot.id));
+    } else {
+      const empty = document.createElement('div');
+      empty.style.cssText = 'padding:20px; text-align:center; color:#999; background:#f9f9f9; border-radius:6px;';
+      empty.textContent = '此時段無訂單';
+      section.appendChild(empty);
+    }
+    card.appendChild(section);
+  });
+  const totalAmount = ORDERS.reduce((sum, o) => sum + calcTotal(o), 0);
+  const totalPpl = ORDERS.reduce((sum, o) => sum + totalPeople(o), 0);
+  const totalLine = document.createElement('div');
+  totalLine.className = 'total-line';
+  totalLine.style.borderTop = '2px solid #ff6b35'; totalLine.style.marginTop = '12px';
+  totalLine.innerHTML = `合計 ${ORDERS.length} 筆訂單 · 總人數 ${totalPpl} 人 · 總金額 $${totalAmount.toLocaleString()}`;
+  card.appendChild(totalLine);
+  printArea.appendChild(card);
+  setTimeout(() => window.print(), 150);
+}
+
+function exportCSV() {
+  if (ORDERS.length === 0) { showToast('沒有訂單可匯出', 'error'); return; }
+  const headers = ['代號','訂單編號','建立時間','時段','安親班','聯絡人','手機','A套餐','B套餐','C套餐','D學生','D老師','E學生','E老師','總人數','金額','座位編號'];
+  const sorted = [...ORDERS].sort((a, b) => a.timeSlot.localeCompare(b.timeSlot) || (a.code||'').localeCompare(b.code||''));
+  const rows = sorted.map(o => [o.code, o.id, new Date(o.createdAt).toLocaleString('zh-TW'), o.timeSlot, o.schoolName, o.contact, o.phone, o.meals.A, o.meals.B, o.meals.C, o.seats.D_students, o.seats.D_teachers, o.seats.E_students, o.seats.E_teachers, totalPeople(o), calcTotal(o), o.selectedSeats.join(' ')]);
+  const csv = '﻿' + [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = `安親班訂餐_${new Date().toISOString().slice(0,10)}.csv`; a.click();
+  URL.revokeObjectURL(url);
+  showToast('已匯出 CSV', 'success');
+}
+
+function renderOverview() {
+  const container = document.getElementById('overviewGrid');
+  container.innerHTML = '';
+  TIME_SLOTS.forEach(slot => {
+    const taken = getSeatsTakenByTimeSlot(slot.id);
+    const usedCount = Object.keys(taken).length;
+    const slotOrders = ORDERS.filter(o => o.timeSlot === slot.id);
+    const slotAmount = slotOrders.reduce((sum, o) => sum + calcTotal(o), 0);
+    const div = document.createElement('div');
+    div.className = 'overview-time';
+    div.innerHTML = `<h3><span class="time-tag ${slot.tag}">${slot.label}</span></h3>
+      <div class="stats">
+        <div>訂單：<strong>${slotOrders.length}</strong> 筆</div>
+        <div>已用座位：<strong>${usedCount}</strong> / ${TOTAL_SEATS}</div>
+        <div>剩餘：<strong style="color:${TOTAL_SEATS-usedCount > 10 ? '#2dc653' : '#dc3545'};">${TOTAL_SEATS-usedCount}</strong></div>
+        <div>金額：<strong style="color:#ff6b35;">$${slotAmount.toLocaleString()}</strong></div>
+      </div>`;
+    div.appendChild(buildSeatmapDOM(slot.id));
+    if (slotOrders.length > 0) {
+      const sList = document.createElement('div'); sList.className = 'school-list';
+      slotOrders.sort((a,b) => (a.code||'').localeCompare(b.code||'')).forEach(o => {
+        const c = getOrderColor(o.code);
+        const chip = document.createElement('div'); chip.className = 'school-chip';
+        chip.innerHTML = `<span class="code-dot" style="background:${c};">${o.code}</span><span>${escapeHtml(o.schoolName)} (${totalPeople(o)}人)</span>`;
+        sList.appendChild(chip);
+      });
+      div.appendChild(sList);
+    }
+    container.appendChild(div);
+  });
+}
+
+// ==================== 工具 ====================
+function escapeHtml(s) { return String(s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]); }
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (type === 'error' ? ' error' : '');
+  setTimeout(() => t.classList.remove('show'), 2400);
+}
+function showModal(title, message, onConfirm) {
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalMessage').textContent = message;
+  const modal = document.getElementById('modal'); modal.classList.add('show');
+  const confirmBtn = document.getElementById('modalConfirm'); const cancelBtn = document.getElementById('modalCancel');
+  const newConfirm = confirmBtn.cloneNode(true); confirmBtn.parentNode.replaceChild(newConfirm, confirmBtn);
+  newConfirm.addEventListener('click', () => { modal.classList.remove('show'); onConfirm(); });
+  cancelBtn.onclick = () => modal.classList.remove('show');
+}
+function showLoading(text='載入中...') {
+  document.getElementById('loadingText').textContent = text;
+  document.getElementById('loadingOverlay').classList.add('show');
+}
+function hideLoading() { document.getElementById('loadingOverlay').classList.remove('show'); }
+
+let currentTab = 'new';
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.toggle('active', c.id === 'tab-'+tab));
+  if (tab === 'manage') renderOrdersList();
+  if (tab === 'overview') renderOverview();
+  if (tab === 'new') renderAll();
+}
+function refreshActiveTab() {
+  if (currentTab === 'manage') renderOrdersList();
+  if (currentTab === 'overview') renderOverview();
+}
+
+function renderAll() { renderTimeSlots(); renderMeals(); renderSeatOnly(); renderSeatmap(); updateSummary(); }
+
+// ==================== 初始化 ====================
+document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
+document.getElementById('btnSave').addEventListener('click', saveCurrentOrder);
+document.getElementById('btnReset').addEventListener('click', () => {
+  showModal('清空表單', '要清空目前輸入的內容嗎？', () => { resetForm(); renderAll(); showToast('已清空', 'success'); });
+});
+document.getElementById('btnExportCSV').addEventListener('click', exportCSV);
+document.getElementById('btnPrintAll').addEventListener('click', printAll);
+document.getElementById('btnClearAll').addEventListener('click', () => {
+  if (ORDERS.length === 0) { showToast('沒有訂單', 'error'); return; }
+  showModal('清空全部訂單', `確定要刪除全部 ${ORDERS.length} 筆訂單嗎？此操作無法復原。`, async () => {
+    if (useFirebase && db) {
+      try {
+        showLoading('刪除中...');
+        for (const o of [...ORDERS]) await deleteDoc(doc(db, 'orders', o.id));
+        showToast('已清空全部訂單', 'success');
+      } catch (e) { showToast('刪除失敗：' + e.message, 'error'); }
+      finally { hideLoading(); }
+    } else {
+      ORDERS = []; saveLocal(); renderAll(); renderOrdersList(); showToast('已清空全部訂單', 'success');
+    }
+  });
+});
+['schoolName','contact','phone'].forEach(id => { document.getElementById(id).addEventListener('input', updateSummary); });
+
+if (!useFirebase) renderAll();
+</script>
+</body>
+</html>
