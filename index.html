@@ -151,47 +151,22 @@ header .cloud-status.offline { background: rgba(220, 53, 69, 0.4); }
 .loading-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.9); display: none; align-items: center; justify-content: center; z-index: 300; flex-direction: column; gap: 12px; }
 .loading-overlay.show { display: flex; }
 .spinner { width: 40px; height: 40px; border: 4px solid #fff3e6; border-top-color: #ff6b35; border-radius: 50%; animation: spin 0.8s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
-
-.login-overlay {
-  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-  background: linear-gradient(135deg, #ff6b35, #f7931e);
-  display: none; align-items: center; justify-content: center;
-  z-index: 500; padding: 20px;
-}
+.login-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(135deg, #ff6b35, #f7931e); display: none; align-items: center; justify-content: center; z-index: 500; padding: 20px; }
 .login-overlay.show { display: flex; }
-.login-card {
-  background: white; padding: 36px 28px; border-radius: 16px;
-  max-width: 400px; width: 100%;
-  box-shadow: 0 12px 32px rgba(0,0,0,0.2);
-}
+.login-card { background: white; padding: 36px 28px; border-radius: 16px; max-width: 400px; width: 100%; box-shadow: 0 12px 32px rgba(0,0,0,0.2); }
 .login-card h2 { color: #ff6b35; text-align: center; margin-bottom: 6px; font-size: 22px; }
 .login-card .subtitle { text-align: center; color: #888; font-size: 13px; margin-bottom: 24px; }
-.login-card .form-group { margin-bottom: 14px; }
-.login-card label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px; color: #555; }
-.login-card input {
-  width: 100%; padding: 12px 14px;
-  border: 2px solid #e5d5c0; border-radius: 8px;
-  font-size: 16px; font-family: inherit;
-}
-.login-card input:focus { border-color: #ff6b35; outline: none; }
-.login-card .btn-login {
-  width: 100%; padding: 14px;
-  background: linear-gradient(135deg, #ff6b35, #f7931e);
-  color: white; border: none; border-radius: 10px;
-  font-size: 16px; font-weight: 700; cursor: pointer;
-  margin-top: 10px;
-}
-.login-card .btn-login:hover { background: #e55a25; }
-.login-card .error-msg { color: #dc3545; font-size: 13px; text-align: center; margin-top: 10px; min-height: 20px; }
-.user-info { display: inline-flex; align-items: center; gap: 8px; margin-left: 10px; font-size: 13px; }
-.user-info .logout-btn {
-  background: rgba(255,255,255,0.2); color: white;
-  border: 1px solid rgba(255,255,255,0.4);
-  padding: 4px 10px; border-radius: 8px; cursor: pointer;
-  font-size: 12px; font-family: inherit;
-}
+.lc-fg { margin-bottom: 14px; display: flex; flex-direction: column; }
+.lc-fg label { font-weight: 600; margin-bottom: 6px; font-size: 14px; color: #555; }
+.lc-fg input { width: 100%; padding: 12px 14px; border: 2px solid #e5d5c0; border-radius: 8px; font-size: 16px; font-family: inherit; }
+.lc-fg input:focus { border-color: #ff6b35; outline: none; }
+.btn-login { width: 100%; padding: 14px; background: linear-gradient(135deg, #ff6b35, #f7931e); color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 10px; font-family: inherit; }
+.btn-login:hover { background: #e55a25; }
+.error-msg { color: #dc3545; font-size: 13px; text-align: center; margin-top: 10px; min-height: 20px; }
+.user-info { display: inline-flex; align-items: center; gap: 8px; margin-left: 10px; font-size: 13px; color: white; }
+.user-info .logout-btn { background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.4); padding: 4px 10px; border-radius: 8px; cursor: pointer; font-size: 12px; font-family: inherit; }
 .user-info .logout-btn:hover { background: rgba(255,255,255,0.3); }
+@keyframes spin { to { transform: rotate(360deg); } }
 
 @media print {
   body { background: white; }
@@ -224,24 +199,15 @@ header .cloud-status.offline { background: rgba(220, 53, 69, 0.4); }
   <h1>🍱 115年7月8月安親班團體訂餐</h1>
   <div class="sub">大新店游泳池親子俱樂部 · 暑期安親團體訂餐系統</div>
   <div class="cloud-status" id="cloudStatus">⏳ 連線中...</div>
-  <span class="user-info" id="userInfo" style="display:none;">
-    👤 <span id="loginUserName"></span>
-    <button class="logout-btn" id="btnLogout">登出</button>
-  </span>
+  <span class="user-info" id="userInfo" style="display:none;">👤 <span id="loginUserName"></span><button class="logout-btn" id="btnLogout">登出</button></span>
 </header>
 
 <div class="login-overlay show" id="loginOverlay">
   <div class="login-card">
     <h2>🔒 訂餐系統登入</h2>
     <div class="subtitle">115年7月8月安親班團體訂餐</div>
-    <div class="form-group">
-      <label>帳號</label>
-      <input type="text" id="loginUsername" placeholder="請輸入帳號" autocomplete="username">
-    </div>
-    <div class="form-group">
-      <label>密碼</label>
-      <input type="password" id="loginPassword" placeholder="請輸入密碼" autocomplete="current-password">
-    </div>
+    <div class="lc-fg"><label>帳號</label><input type="text" id="loginUsername" placeholder="請輸入帳號" autocomplete="username"></div>
+    <div class="lc-fg"><label>密碼</label><input type="password" id="loginPassword" placeholder="請輸入密碼" autocomplete="current-password"></div>
     <button class="btn-login" id="btnLogin">登入</button>
     <div class="error-msg" id="loginError"></div>
   </div>
@@ -363,42 +329,35 @@ header .cloud-status.offline { background: rgba(220, 53, 69, 0.4); }
 </div>
 
 <script>
-// 同步執行登入控制 (放在 module script 之前避免延遲)
 (function(){
-  const VALID_USERS = [{ username: 'wei01', password: '12345', displayName: 'wei01' }];
-  const KEY = 'orderbook_login_v1';
-  const DUR = 8 * 60 * 60 * 1000;
-
+  var VALID_USERS = [{ u: 'wei01', p: '12345', n: 'wei01' }];
+  var KEY = 'orderbook_login_v1';
+  var DUR = 8 * 60 * 60 * 1000;
   function check() {
     try {
-      const d = JSON.parse(localStorage.getItem(KEY) || 'null');
-      if (d && d.expiresAt > Date.now() && VALID_USERS.find(u => u.username === d.username)) return d;
+      var d = JSON.parse(localStorage.getItem(KEY) || 'null');
+      if (d && d.expiresAt > Date.now() && VALID_USERS.find(function(u){return u.u === d.username;})) return d;
     } catch(e) {}
     return null;
   }
   function show() {
-    const o = document.getElementById('loginOverlay');
-    if (o) o.classList.add('show');
-    const u = document.getElementById('userInfo');
-    if (u) u.style.display = 'none';
+    var o = document.getElementById('loginOverlay'); if (o) o.classList.add('show');
+    var u = document.getElementById('userInfo'); if (u) u.style.display = 'none';
   }
   function hide(name) {
-    const o = document.getElementById('loginOverlay');
-    if (o) o.classList.remove('show');
-    const u = document.getElementById('userInfo');
-    if (u) u.style.display = 'inline-flex';
-    const n = document.getElementById('loginUserName');
-    if (n) n.textContent = name;
+    var o = document.getElementById('loginOverlay'); if (o) o.classList.remove('show');
+    var u = document.getElementById('userInfo'); if (u) u.style.display = 'inline-flex';
+    var n = document.getElementById('loginUserName'); if (n) n.textContent = name;
   }
   function login() {
-    const u = document.getElementById('loginUsername').value.trim();
-    const p = document.getElementById('loginPassword').value;
-    const e = document.getElementById('loginError');
-    const f = VALID_USERS.find(x => x.username === u && x.password === p);
-    if (!f) { e.textContent = '❌ 帳號或密碼錯誤'; return; }
+    var u = document.getElementById('loginUsername').value.trim();
+    var p = document.getElementById('loginPassword').value;
+    var e = document.getElementById('loginError');
+    var f = VALID_USERS.find(function(x){return x.u === u && x.p === p;});
+    if (!f) { e.textContent = '\u274c \u5e33\u865f\u6216\u5bc6\u78bc\u932f\u8aa4'; return; }
     e.textContent = '';
-    localStorage.setItem(KEY, JSON.stringify({ username: f.username, expiresAt: Date.now() + DUR }));
-    hide(f.displayName);
+    localStorage.setItem(KEY, JSON.stringify({ username: f.u, expiresAt: Date.now() + DUR }));
+    hide(f.n);
   }
   function logout() {
     localStorage.removeItem(KEY);
@@ -406,39 +365,30 @@ header .cloud-status.offline { background: rgba(220, 53, 69, 0.4); }
     document.getElementById('loginPassword').value = '';
     show();
   }
-
   function init() {
-    const logged = check();
-    if (logged) {
-      const user = VALID_USERS.find(u => u.username === logged.username);
-      hide(user.displayName);
-    } else {
-      show();
-    }
-    const btnLogin = document.getElementById('btnLogin');
-    const btnLogout = document.getElementById('btnLogout');
-    if (btnLogin) btnLogin.addEventListener('click', login);
-    if (btnLogout) btnLogout.addEventListener('click', logout);
-    ['loginUsername','loginPassword'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.addEventListener('keypress', (ev) => { if (ev.key === 'Enter') login(); });
+    var logged = check();
+    if (logged) { var u = VALID_USERS.find(function(x){return x.u === logged.username;}); hide(u.n); }
+    else { show(); }
+    var bL = document.getElementById('btnLogin'); if (bL) bL.addEventListener('click', login);
+    var bO = document.getElementById('btnLogout'); if (bO) bO.addEventListener('click', logout);
+    ['loginUsername','loginPassword'].forEach(function(id){
+      var el = document.getElementById(id);
+      if (el) el.addEventListener('keypress', function(ev){ if (ev.key === 'Enter') login(); });
     });
   }
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', init); } else { init(); }
 })();
 </script>
 
 <script type="module">
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js';
-import { getFirestore, collection, doc, setDoc, addDoc, deleteDoc, onSnapshot, serverTimestamp, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
-
 // ============================================================
-// ⚙️  FIREBASE_CONFIG
+// ⚙️  FIREBASE_CONFIG ─ 請貼上你從 Firebase Console 取得的設定值
 // ============================================================
+// 步驟：
+//   1. 前往 https://console.firebase.google.com
+//   2. 建立專案 → 新增 Web App → 複製 firebaseConfig
+//   3. 把下方 6 個欄位的 "YOUR_..." 換成你的值
+//   4. Firestore Database → 建立資料庫（測試模式）
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyDBgRkF29tZ88YFMd0PLh6QH71qhJ3eHCM",
   authDomain: "anqing-orders-2026.firebaseapp.com",
@@ -449,7 +399,8 @@ const FIREBASE_CONFIG = {
 };
 // ============================================================
 
-// 登入功能由前面的非 module script 處理，此處不再重複
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js';
+import { getFirestore, collection, doc, setDoc, addDoc, deleteDoc, onSnapshot, serverTimestamp, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
 
 // ==================== 設定 ====================
 const TABLE_CONFIG = [
@@ -1050,3 +1001,96 @@ function renderOverview() {
     const taken = getSeatsTakenByTimeSlot(slot.id);
     const usedCount = Object.keys(taken).length;
     const slotOrders = ORDERS.filter(o => o.timeSlot === slot.id);
+    const slotAmount = slotOrders.reduce((sum, o) => sum + calcTotal(o), 0);
+    const div = document.createElement('div');
+    div.className = 'overview-time';
+    div.innerHTML = `<h3><span class="time-tag ${slot.tag}">${slot.label}</span></h3>
+      <div class="stats">
+        <div>訂單：<strong>${slotOrders.length}</strong> 筆</div>
+        <div>已用座位：<strong>${usedCount}</strong> / ${TOTAL_SEATS}</div>
+        <div>剩餘：<strong style="color:${TOTAL_SEATS-usedCount > 10 ? '#2dc653' : '#dc3545'};">${TOTAL_SEATS-usedCount}</strong></div>
+        <div>金額：<strong style="color:#ff6b35;">$${slotAmount.toLocaleString()}</strong></div>
+      </div>`;
+    div.appendChild(buildSeatmapDOM(slot.id));
+    if (slotOrders.length > 0) {
+      const sList = document.createElement('div'); sList.className = 'school-list';
+      slotOrders.sort((a,b) => (a.code||'').localeCompare(b.code||'')).forEach(o => {
+        const c = getOrderColor(o.code);
+        const chip = document.createElement('div'); chip.className = 'school-chip';
+        chip.innerHTML = `<span class="code-dot" style="background:${c};">${o.code}</span><span>${escapeHtml(o.schoolName)} (${totalPeople(o)}人)</span>`;
+        sList.appendChild(chip);
+      });
+      div.appendChild(sList);
+    }
+    container.appendChild(div);
+  });
+}
+
+// ==================== 工具 ====================
+function escapeHtml(s) { return String(s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]); }
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (type === 'error' ? ' error' : '');
+  setTimeout(() => t.classList.remove('show'), 2400);
+}
+function showModal(title, message, onConfirm) {
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalMessage').textContent = message;
+  const modal = document.getElementById('modal'); modal.classList.add('show');
+  const confirmBtn = document.getElementById('modalConfirm'); const cancelBtn = document.getElementById('modalCancel');
+  const newConfirm = confirmBtn.cloneNode(true); confirmBtn.parentNode.replaceChild(newConfirm, confirmBtn);
+  newConfirm.addEventListener('click', () => { modal.classList.remove('show'); onConfirm(); });
+  cancelBtn.onclick = () => modal.classList.remove('show');
+}
+function showLoading(text='載入中...') {
+  document.getElementById('loadingText').textContent = text;
+  document.getElementById('loadingOverlay').classList.add('show');
+}
+function hideLoading() { document.getElementById('loadingOverlay').classList.remove('show'); }
+
+let currentTab = 'new';
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.toggle('active', c.id === 'tab-'+tab));
+  if (tab === 'manage') renderOrdersList();
+  if (tab === 'overview') renderOverview();
+  if (tab === 'new') renderAll();
+}
+function refreshActiveTab() {
+  if (currentTab === 'manage') renderOrdersList();
+  if (currentTab === 'overview') renderOverview();
+}
+
+function renderAll() { renderTimeSlots(); renderMeals(); renderSeatOnly(); renderSeatmap(); updateSummary(); }
+
+// ==================== 初始化 ====================
+document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
+document.getElementById('btnSave').addEventListener('click', saveCurrentOrder);
+document.getElementById('btnReset').addEventListener('click', () => {
+  showModal('清空表單', '要清空目前輸入的內容嗎？', () => { resetForm(); renderAll(); showToast('已清空', 'success'); });
+});
+document.getElementById('btnExportCSV').addEventListener('click', exportCSV);
+document.getElementById('btnPrintAll').addEventListener('click', printAll);
+document.getElementById('btnClearAll').addEventListener('click', () => {
+  if (ORDERS.length === 0) { showToast('沒有訂單', 'error'); return; }
+  showModal('清空全部訂單', `確定要刪除全部 ${ORDERS.length} 筆訂單嗎？此操作無法復原。`, async () => {
+    if (useFirebase && db) {
+      try {
+        showLoading('刪除中...');
+        for (const o of [...ORDERS]) await deleteDoc(doc(db, 'orders', o.id));
+        showToast('已清空全部訂單', 'success');
+      } catch (e) { showToast('刪除失敗：' + e.message, 'error'); }
+      finally { hideLoading(); }
+    } else {
+      ORDERS = []; saveLocal(); renderAll(); renderOrdersList(); showToast('已清空全部訂單', 'success');
+    }
+  });
+});
+['schoolName','contact','phone'].forEach(id => { document.getElementById(id).addEventListener('input', updateSummary); });
+
+if (!useFirebase) renderAll();
+</script>
+</body>
+</html>
