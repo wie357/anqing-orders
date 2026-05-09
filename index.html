@@ -433,14 +433,12 @@ header .cloud-status.offline { background: rgba(220, 53, 69, 0.4); }
 </script>
 
 <script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js';
+import { getFirestore, collection, doc, setDoc, addDoc, deleteDoc, onSnapshot, serverTimestamp, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
+
 // ============================================================
-// ⚙️  FIREBASE_CONFIG ─ 請貼上你從 Firebase Console 取得的設定值
+// ⚙️  FIREBASE_CONFIG
 // ============================================================
-// 步驟：
-//   1. 前往 https://console.firebase.google.com
-//   2. 建立專案 → 新增 Web App → 複製 firebaseConfig
-//   3. 把下方 6 個欄位的 "YOUR_..." 換成你的值
-//   4. Firestore Database → 建立資料庫（測試模式）
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyDBgRkF29tZ88YFMd0PLh6QH71qhJ3eHCM",
   authDomain: "anqing-orders-2026.firebaseapp.com",
@@ -451,76 +449,7 @@ const FIREBASE_CONFIG = {
 };
 // ============================================================
 
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js';
-import { getFirestore, collection, doc, setDoc, addDoc, deleteDoc, onSnapshot, serverTimestamp, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
-
-// ==================== 登入控制 ====================
-// 帳號密碼（注意：靜態網頁無法做到絕對安全，源碼可被檢視，僅作基本門檻）
-const VALID_USERS = [
-  { username: 'wei01', password: '12345', displayName: 'wei01' }
-];
-const LOGIN_STORAGE_KEY = 'orderbook_login_v1';
-const LOGIN_DURATION_MS = 8 * 60 * 60 * 1000; // 8 小時
-
-function checkLogin() {
-  try {
-    const data = JSON.parse(localStorage.getItem(LOGIN_STORAGE_KEY) || 'null');
-    if (data && data.expiresAt > Date.now() && VALID_USERS.find(u => u.username === data.username)) {
-      return data;
-    }
-  } catch(e) {}
-  return null;
-}
-
-function showLoginOverlay() {
-  document.getElementById('loginOverlay').classList.add('show');
-  document.getElementById('userInfo').style.display = 'none';
-}
-function hideLoginOverlay(displayName) {
-  document.getElementById('loginOverlay').classList.remove('show');
-  document.getElementById('userInfo').style.display = 'inline-flex';
-  document.getElementById('loginUserName').textContent = displayName;
-}
-
-function doLogin() {
-  const u = document.getElementById('loginUsername').value.trim();
-  const p = document.getElementById('loginPassword').value;
-  const errEl = document.getElementById('loginError');
-  const found = VALID_USERS.find(x => x.username === u && x.password === p);
-  if (!found) {
-    errEl.textContent = '❌ 帳號或密碼錯誤';
-    return;
-  }
-  errEl.textContent = '';
-  localStorage.setItem(LOGIN_STORAGE_KEY, JSON.stringify({
-    username: found.username, expiresAt: Date.now() + LOGIN_DURATION_MS
-  }));
-  hideLoginOverlay(found.displayName);
-}
-
-function doLogout() {
-  localStorage.removeItem(LOGIN_STORAGE_KEY);
-  document.getElementById('loginUsername').value = '';
-  document.getElementById('loginPassword').value = '';
-  showLoginOverlay();
-}
-
-// 啟動時驗證
-const loggedIn = checkLogin();
-if (loggedIn) {
-  const user = VALID_USERS.find(u => u.username === loggedIn.username);
-  hideLoginOverlay(user.displayName);
-} else {
-  showLoginOverlay();
-}
-
-document.getElementById('btnLogin').addEventListener('click', doLogin);
-document.getElementById('btnLogout').addEventListener('click', doLogout);
-['loginUsername','loginPassword'].forEach(id => {
-  document.getElementById(id).addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') doLogin();
-  });
-});
+// 登入功能由前面的非 module script 處理，此處不再重複
 
 // ==================== 設定 ====================
 const TABLE_CONFIG = [
@@ -1079,4 +1008,45 @@ function printAll() {
       section.appendChild(tWrap);
       const mapHeading = document.createElement('div');
       mapHeading.style.cssText = 'font-weight:600; margin-bottom:6px; font-size:14px; color:#555;';
- 
+      mapHeading.textContent = '🪑 座位配置圖（座位 1–50，已預訂顯示為「代號+順序」）';
+      section.appendChild(mapHeading);
+      section.appendChild(buildSeatmapDOM(slot.id));
+    } else {
+      const empty = document.createElement('div');
+      empty.style.cssText = 'padding:20px; text-align:center; color:#999; background:#f9f9f9; border-radius:6px;';
+      empty.textContent = '此時段無訂單';
+      section.appendChild(empty);
+    }
+    card.appendChild(section);
+  });
+  const totalAmount = ORDERS.reduce((sum, o) => sum + calcTotal(o), 0);
+  const totalPpl = ORDERS.reduce((sum, o) => sum + totalPeople(o), 0);
+  const totalLine = document.createElement('div');
+  totalLine.className = 'total-line';
+  totalLine.style.borderTop = '2px solid #ff6b35'; totalLine.style.marginTop = '12px';
+  totalLine.innerHTML = `合計 ${ORDERS.length} 筆訂單 · 總人數 ${totalPpl} 人 · 總金額 $${totalAmount.toLocaleString()}`;
+  card.appendChild(totalLine);
+  printArea.appendChild(card);
+  setTimeout(() => window.print(), 150);
+}
+
+function exportCSV() {
+  if (ORDERS.length === 0) { showToast('沒有訂單可匯出', 'error'); return; }
+  const headers = ['代號','訂單編號','建立時間','時段','安親班','聯絡人','手機','A套餐','B套餐','C套餐','D學生','D老師','E學生','E老師','總人數','金額','座位編號'];
+  const sorted = [...ORDERS].sort((a, b) => a.timeSlot.localeCompare(b.timeSlot) || (a.code||'').localeCompare(b.code||''));
+  const rows = sorted.map(o => [o.code, o.id, new Date(o.createdAt).toLocaleString('zh-TW'), o.timeSlot, o.schoolName, o.contact, o.phone, o.meals.A, o.meals.B, o.meals.C, o.seats.D_students, o.seats.D_teachers, o.seats.E_students, o.seats.E_teachers, totalPeople(o), calcTotal(o), o.selectedSeats.join(' ')]);
+  const csv = '﻿' + [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = `安親班訂餐_${new Date().toISOString().slice(0,10)}.csv`; a.click();
+  URL.revokeObjectURL(url);
+  showToast('已匯出 CSV', 'success');
+}
+
+function renderOverview() {
+  const container = document.getElementById('overviewGrid');
+  container.innerHTML = '';
+  TIME_SLOTS.forEach(slot => {
+    const taken = getSeatsTakenByTimeSlot(slot.id);
+    const usedCount = Object.keys(taken).length;
+    const slotOrders = ORDERS.filter(o => o.timeSlot === slot.id);
