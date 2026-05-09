@@ -230,7 +230,7 @@ header .cloud-status.offline { background: rgba(220, 53, 69, 0.4); }
   </span>
 </header>
 
-<div class="login-overlay" id="loginOverlay">
+<div class="login-overlay show" id="loginOverlay">
   <div class="login-card">
     <h2>🔒 訂餐系統登入</h2>
     <div class="subtitle">115年7月8月安親班團體訂餐</div>
@@ -361,6 +361,76 @@ header .cloud-status.offline { background: rgba(220, 53, 69, 0.4); }
   <div class="spinner"></div>
   <div id="loadingText" style="font-weight: 600; color: #555;">載入中...</div>
 </div>
+
+<script>
+// 同步執行登入控制 (放在 module script 之前避免延遲)
+(function(){
+  const VALID_USERS = [{ username: 'wei01', password: '12345', displayName: 'wei01' }];
+  const KEY = 'orderbook_login_v1';
+  const DUR = 8 * 60 * 60 * 1000;
+
+  function check() {
+    try {
+      const d = JSON.parse(localStorage.getItem(KEY) || 'null');
+      if (d && d.expiresAt > Date.now() && VALID_USERS.find(u => u.username === d.username)) return d;
+    } catch(e) {}
+    return null;
+  }
+  function show() {
+    const o = document.getElementById('loginOverlay');
+    if (o) o.classList.add('show');
+    const u = document.getElementById('userInfo');
+    if (u) u.style.display = 'none';
+  }
+  function hide(name) {
+    const o = document.getElementById('loginOverlay');
+    if (o) o.classList.remove('show');
+    const u = document.getElementById('userInfo');
+    if (u) u.style.display = 'inline-flex';
+    const n = document.getElementById('loginUserName');
+    if (n) n.textContent = name;
+  }
+  function login() {
+    const u = document.getElementById('loginUsername').value.trim();
+    const p = document.getElementById('loginPassword').value;
+    const e = document.getElementById('loginError');
+    const f = VALID_USERS.find(x => x.username === u && x.password === p);
+    if (!f) { e.textContent = '❌ 帳號或密碼錯誤'; return; }
+    e.textContent = '';
+    localStorage.setItem(KEY, JSON.stringify({ username: f.username, expiresAt: Date.now() + DUR }));
+    hide(f.displayName);
+  }
+  function logout() {
+    localStorage.removeItem(KEY);
+    document.getElementById('loginUsername').value = '';
+    document.getElementById('loginPassword').value = '';
+    show();
+  }
+
+  function init() {
+    const logged = check();
+    if (logged) {
+      const user = VALID_USERS.find(u => u.username === logged.username);
+      hide(user.displayName);
+    } else {
+      show();
+    }
+    const btnLogin = document.getElementById('btnLogin');
+    const btnLogout = document.getElementById('btnLogout');
+    if (btnLogin) btnLogin.addEventListener('click', login);
+    if (btnLogout) btnLogout.addEventListener('click', logout);
+    ['loginUsername','loginPassword'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('keypress', (ev) => { if (ev.key === 'Enter') login(); });
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>
 
 <script type="module">
 // ============================================================
@@ -1009,44 +1079,4 @@ function printAll() {
       section.appendChild(tWrap);
       const mapHeading = document.createElement('div');
       mapHeading.style.cssText = 'font-weight:600; margin-bottom:6px; font-size:14px; color:#555;';
-      mapHeading.textContent = '🪑 座位配置圖（座位 1–50，已預訂顯示為「代號+順序」）';
-      section.appendChild(mapHeading);
-      section.appendChild(buildSeatmapDOM(slot.id));
-    } else {
-      const empty = document.createElement('div');
-      empty.style.cssText = 'padding:20px; text-align:center; color:#999; background:#f9f9f9; border-radius:6px;';
-      empty.textContent = '此時段無訂單';
-      section.appendChild(empty);
-    }
-    card.appendChild(section);
-  });
-  const totalAmount = ORDERS.reduce((sum, o) => sum + calcTotal(o), 0);
-  const totalPpl = ORDERS.reduce((sum, o) => sum + totalPeople(o), 0);
-  const totalLine = document.createElement('div');
-  totalLine.className = 'total-line';
-  totalLine.style.borderTop = '2px solid #ff6b35'; totalLine.style.marginTop = '12px';
-  totalLine.innerHTML = `合計 ${ORDERS.length} 筆訂單 · 總人數 ${totalPpl} 人 · 總金額 $${totalAmount.toLocaleString()}`;
-  card.appendChild(totalLine);
-  printArea.appendChild(card);
-  setTimeout(() => window.print(), 150);
-}
-
-function exportCSV() {
-  if (ORDERS.length === 0) { showToast('沒有訂單可匯出', 'error'); return; }
-  const headers = ['代號','訂單編號','建立時間','時段','安親班','聯絡人','手機','A套餐','B套餐','C套餐','D學生','D老師','E學生','E老師','總人數','金額','座位編號'];
-  const sorted = [...ORDERS].sort((a, b) => a.timeSlot.localeCompare(b.timeSlot) || (a.code||'').localeCompare(b.code||''));
-  const rows = sorted.map(o => [o.code, o.id, new Date(o.createdAt).toLocaleString('zh-TW'), o.timeSlot, o.schoolName, o.contact, o.phone, o.meals.A, o.meals.B, o.meals.C, o.seats.D_students, o.seats.D_teachers, o.seats.E_students, o.seats.E_teachers, totalPeople(o), calcTotal(o), o.selectedSeats.join(' ')]);
-  const csv = '﻿' + [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = `安親班訂餐_${new Date().toISOString().slice(0,10)}.csv`; a.click();
-  URL.revokeObjectURL(url);
-  showToast('已匯出 CSV', 'success');
-}
-
-function renderOverview() {
-  const container = document.getElementById('overviewGrid');
-  container.innerHTML = '';
-  TIME_SLOTS.forEach(slot => {
-    const taken = getSeatsTakenByTimeSlot(slot.id);
-    const usedCount = O
+ 
