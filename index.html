@@ -166,6 +166,42 @@ header .cloud-status.offline { background: rgba(220, 53, 69, 0.4); }
 .user-info { display: inline-flex; align-items: center; gap: 8px; margin-left: 10px; font-size: 13px; color: white; }
 .user-info .logout-btn { background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.4); padding: 4px 10px; border-radius: 8px; cursor: pointer; font-size: 12px; font-family: inherit; }
 .user-info .logout-btn:hover { background: rgba(255,255,255,0.3); }
+.date-picker-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.date-picker-row label { font-weight: 600; color: #555; font-size: 14px; }
+.date-picker-row input[type=date], .date-picker-row select { padding: 10px 12px; border: 2px solid #e5d5c0; border-radius: 8px; font-size: 15px; font-family: inherit; min-width: 200px; }
+.date-picker-row input[type=date]:focus, .date-picker-row select:focus { border-color: #ff6b35; outline: none; }
+.date-display { font-size: 18px; font-weight: 700; color: #ff6b35; }
+.calendar { background: white; border-radius: 12px; padding: 16px; border: 1px solid #e5d5c0; margin-bottom: 16px; }
+.calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.calendar-header h3 { color: #ff6b35; font-size: 17px; }
+.calendar-nav { display: flex; gap: 6px; }
+.calendar-nav button { padding: 6px 14px; border: 1px solid #e5d5c0; background: white; border-radius: 6px; cursor: pointer; font-weight: 600; font-family: inherit; }
+.calendar-nav button:hover:not(:disabled) { background: #fff3e6; border-color: #ff6b35; color: #ff6b35; }
+.calendar-nav button:disabled { opacity: 0.4; cursor: not-allowed; }
+.calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.calendar-weekday { text-align: center; font-weight: 700; color: #888; font-size: 12px; padding: 6px 0; }
+.calendar-weekday.sun { color: #dc3545; }
+.calendar-weekday.sat { color: #1976d2; }
+.calendar-day { aspect-ratio: 1; border-radius: 8px; padding: 4px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; cursor: pointer; transition: all 0.15s; border: 2px solid transparent; background: #f9f9f9; font-size: 12px; }
+.calendar-day:hover:not(.disabled) { transform: scale(1.05); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+.calendar-day.disabled { opacity: 0.3; cursor: not-allowed; background: #fff; }
+.calendar-day.selected { border-color: #ff6b35; background: #ff6b35; color: white; }
+.calendar-day.today { box-shadow: inset 0 0 0 2px #2dc653; }
+.calendar-day .day-num { font-weight: 700; font-size: 13px; }
+.calendar-day .day-stats { font-size: 10px; color: #888; }
+.calendar-day.selected .day-stats { color: rgba(255,255,255,0.9); }
+.calendar-day.has-orders { background: #fff3e6; }
+.calendar-day.has-orders.selected { background: #ff6b35; }
+.calendar-day.busy { background: #ffeaa7; }
+.calendar-day.busy.selected { background: #ff6b35; }
+.calendar-day.full { background: #ffcccc; }
+.calendar-day.full.selected { background: #dc3545; }
+.calendar-day .occ-bar { height: 3px; width: 100%; background: rgba(0,0,0,0.1); border-radius: 2px; overflow: hidden; }
+.calendar-day .occ-bar-fill { height: 100%; background: #ff6b35; transition: width 0.3s; }
+.calendar-day.selected .occ-bar-fill { background: white; }
+.calendar-legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 12px; color: #666; padding: 8px 0; }
+.calendar-legend-item { display: flex; align-items: center; gap: 4px; }
+.calendar-legend-dot { width: 14px; height: 14px; border-radius: 4px; }
 .role-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; margin-right: 4px; }
 .role-badge.superadmin { background: #9c27b0; color: white; }
 .role-badge.admin { background: #1976d2; color: white; }
@@ -275,23 +311,33 @@ body.role-admin .superadmin-only { display: none !important; }
   </div>
 
   <div class="section">
-    <h2>② 用餐時段（每梯次 30 分鐘）</h2>
+    <h2>② 用餐日期</h2>
+    <div class="date-picker-row">
+      <label>選擇日期：</label>
+      <input type="date" id="orderDate" min="2026-07-01" max="2026-08-31">
+      <span class="date-display" id="orderDateDisplay"></span>
+    </div>
+    <p style="font-size:12px; color:#888; margin-top:6px;">可選範圍：2026/7/1 - 2026/8/31</p>
+  </div>
+
+  <div class="section">
+    <h2>③ 用餐時段（每梯次 30 分鐘）</h2>
     <div class="time-slots" id="timeSlots"></div>
   </div>
 
   <div class="section">
-    <h2>③ 套餐選擇（每份 120 元）</h2>
+    <h2>④ 套餐選擇（每份 120 元）</h2>
     <div class="meal-grid" id="meals"></div>
   </div>
 
   <div class="section">
-    <h2>④ 預約座位區（不另購套餐者）</h2>
+    <h2>⑤ 預約座位區（不另購套餐者）</h2>
     <p style="font-size: 13px; color: #888; margin-bottom: 12px;">老師陪同入場免清潔費，但仍需佔用座位。</p>
     <div class="meal-grid" id="seatOnlyOptions"></div>
   </div>
 
   <div class="section">
-    <h2>⑤ 座位選擇</h2>
+    <h2>⑥ 座位選擇</h2>
     <p style="font-size: 13px; color: #555; margin-bottom: 10px;" id="seatHint">請先選擇用餐時段。</p>
     <div class="legend">
       <div class="legend-item"><div class="legend-dot" style="background:white;"></div>可選（顯示座位編號）</div>
@@ -333,7 +379,24 @@ body.role-admin .superadmin-only { display: none !important; }
 
 <div class="tab-content" id="tab-overview">
   <div class="section">
-    <h2>🪑 各時段座位使用情況</h2>
+    <h2>📅 日期選擇</h2>
+    <div class="date-picker-row" style="margin-bottom: 12px;">
+      <label>查看日期：</label>
+      <input type="date" id="overviewDate" min="2026-07-01" max="2026-08-31">
+      <span class="date-display" id="overviewDateDisplay"></span>
+      <button class="btn btn-secondary btn-sm" id="btnOverviewToday">今天</button>
+    </div>
+    <div class="calendar" id="calendarWidget"></div>
+    <div class="calendar-legend">
+      <div class="calendar-legend-item"><div class="calendar-legend-dot" style="background:#f9f9f9;"></div>無訂單</div>
+      <div class="calendar-legend-item"><div class="calendar-legend-dot" style="background:#fff3e6;"></div>有訂單</div>
+      <div class="calendar-legend-item"><div class="calendar-legend-dot" style="background:#ffeaa7;"></div>過半 (>50%)</div>
+      <div class="calendar-legend-item"><div class="calendar-legend-dot" style="background:#ffcccc;"></div>幾乎滿 (>90%)</div>
+      <div class="calendar-legend-item"><div class="calendar-legend-dot" style="background:white; box-shadow: inset 0 0 0 2px #2dc653;"></div>今天</div>
+    </div>
+  </div>
+  <div class="section">
+    <h2>🪑 <span id="overviewSelectedDateLabel">選定日期</span> 座位使用情況</h2>
     <div class="overview-grid" id="overviewGrid"></div>
   </div>
 </div>
@@ -562,6 +625,36 @@ const TIME_SLOTS = [
   { id: '12:10-12:40', label: '12:10 - 12:40', tag: 't2' },
   { id: '12:50-13:20', label: '12:50 - 13:20', tag: 't3' }
 ];
+const DATE_RANGE = { start: '2026-07-01', end: '2026-08-31' };
+function getValidDates() {
+  const dates = [];
+  const s = new Date(DATE_RANGE.start + 'T00:00:00');
+  const e = new Date(DATE_RANGE.end + 'T00:00:00');
+  for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    dates.push(`${y}-${m}-${day}`);
+  }
+  return dates;
+}
+function getTodayDateStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function getDefaultDate() {
+  const today = getTodayDateStr();
+  if (today >= DATE_RANGE.start && today <= DATE_RANGE.end) return today;
+  return DATE_RANGE.start;
+}
+function isValidDate(d) { return d >= DATE_RANGE.start && d <= DATE_RANGE.end; }
+function formatDateChinese(dateStr) {
+  if (!dateStr) return '';
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const date = new Date(y, m - 1, d);
+  const wd = ['日','一','二','三','四','五','六'][date.getDay()];
+  return `${y}年${m}月${d}日 (週${wd})`;
+}
 const MEALS = [
   { code: 'A', name: '起司雞肉捲套餐', desc: '起司雞肉捲 + 2塊小雞塊 + 小薯條 + 冬瓜茶暢飲', price: 120 },
   { code: 'B', name: '起司燻雞派套餐', desc: '起司燻雞派 + 2塊小雞塊 + 小薯條 + 冬瓜茶暢飲', price: 120 },
@@ -584,7 +677,7 @@ let useFirebase = false;
 
 function newOrderTemplate() {
   return {
-    id: null, code: '',
+    id: null, code: '', date: getDefaultDate(),
     schoolName: '', contact: '', phone: '',
     timeSlot: '',
     meals: { A: 0, B: 0, C: 0 },
@@ -697,11 +790,12 @@ function calcTotal(o) {
 function totalPeople(o) {
   return o.meals.A + o.meals.B + o.meals.C + o.seats.D_students + o.seats.D_teachers + o.seats.E_students + o.seats.E_teachers;
 }
-function getSeatsTakenByTimeSlot(timeSlot, excludeOrderId = null) {
+function getSeatsTakenByTimeSlot(timeSlot, excludeOrderId = null, dateFilter = null) {
   const taken = {};
   ORDERS.forEach(order => {
     if (order.id === excludeOrderId) return;
     if (order.timeSlot !== timeSlot) return;
+    if (dateFilter && order.date !== dateFilter) return;
     const color = getOrderColor(order.code);
     order.selectedSeats.forEach((seatNum, position) => {
       taken[seatNum] = { orderId: order.id, ownerId: order.ownerId, schoolName: order.schoolName, code: order.code, color, position: position + 1 };
@@ -715,7 +809,7 @@ function renderTimeSlots() {
   const container = document.getElementById('timeSlots');
   container.innerHTML = '';
   TIME_SLOTS.forEach(slot => {
-    const taken = getSeatsTakenByTimeSlot(slot.id, editingOrderId);
+    const taken = getSeatsTakenByTimeSlot(slot.id, editingOrderId, currentOrder.date);
     const usedCount = Object.keys(taken).length;
     const card = document.createElement('div');
     card.className = 'time-slot-card' + (currentOrder.timeSlot === slot.id ? ' selected' : '');
@@ -795,7 +889,7 @@ function renderSeatmap() {
   const slotLabel = TIME_SLOTS.find(s => s.id === currentOrder.timeSlot).label;
   hint.innerHTML = `📍 用餐時段：<strong>${slotLabel}</strong> · 需要座位：<strong>${need}</strong> · 已選：<strong>${currentOrder.selectedSeats.length}</strong>`;
   hint.style.color = (need === currentOrder.selectedSeats.length && need > 0) ? '#2dc653' : '#555';
-  const taken = getSeatsTakenByTimeSlot(currentOrder.timeSlot, editingOrderId);
+  const taken = getSeatsTakenByTimeSlot(currentOrder.timeSlot, editingOrderId, currentOrder.date);
   const previewCode = currentOrder.code || generateNextCode();
   TABLE_CONFIG.forEach(table => {
     const tbl = document.createElement('div'); tbl.className = 'long-table';
@@ -869,12 +963,12 @@ function makeDisplaySeat(seatNum, taken) {
   } else { el.textContent = seatNum; el.style.cursor = 'default'; }
   return el;
 }
-function buildSeatmapDOM(timeSlot) {
+function buildSeatmapDOM(timeSlot, dateFilter) {
   const wrap = document.createElement('div');
   wrap.className = 'seatmap-container';
   wrap.innerHTML = '<div class="seatmap-stage">━━━ 餐廳前方 / 取餐區 ━━━</div>';
   const grid = document.createElement('div'); grid.className = 'tables-grid';
-  const taken = getSeatsTakenByTimeSlot(timeSlot);
+  const taken = getSeatsTakenByTimeSlot(timeSlot, null, dateFilter);
   TABLE_CONFIG.forEach(table => {
     const tbl = document.createElement('div'); tbl.className = 'long-table';
     const half1 = Math.ceil(table.count / 2);
@@ -892,6 +986,27 @@ function buildSeatmapDOM(timeSlot) {
   return wrap;
 }
 
+function renderDatePicker() {
+  const inp = document.getElementById('orderDate');
+  const disp = document.getElementById('orderDateDisplay');
+  if (inp) {
+    inp.value = currentOrder.date || getDefaultDate();
+    if (disp) disp.textContent = formatDateChinese(inp.value);
+    inp.onchange = () => {
+      if (!isValidDate(inp.value)) {
+        showToast('日期需在 2026/7/1 - 2026/8/31', 'error');
+        inp.value = currentOrder.date || getDefaultDate();
+        return;
+      }
+      currentOrder.date = inp.value;
+      currentOrder.selectedSeats = []; // 改日期清空座位（避免衝突）
+      if (disp) disp.textContent = formatDateChinese(inp.value);
+      renderTimeSlots();
+      renderSeatmap();
+      updateSummary();
+    };
+  }
+}
 function updateSummary() {
   document.getElementById('totalPeople').textContent = totalPeople(currentOrder);
   document.getElementById('selectedSeats').textContent = currentOrder.selectedSeats.length;
@@ -925,6 +1040,7 @@ async function saveCurrentOrder() {
   const orderData = {
     code: currentOrder.code || generateNextCode(),
     schoolName: currentOrder.schoolName, contact: currentOrder.contact, phone: currentOrder.phone,
+    date: currentOrder.date || getDefaultDate(),
     timeSlot: currentOrder.timeSlot,
     meals: currentOrder.meals, seats: currentOrder.seats,
     selectedSeats: currentOrder.selectedSeats,
@@ -941,23 +1057,6 @@ async function saveCurrentOrder() {
       } else {
         orderData.createdAt = serverTimestamp();
         await addDoc(collection(db, 'orders'), orderData);
-        
-        // 通知 LINE
-        fetch('https://hook.eu1.make.com/p4pzicwbu2ysx89z6owom8q5wrsnmxum', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({
-            code: orderData.code,
-            schoolName: orderData.schoolName,
-            contact: orderData.contact,
-            phone: orderData.phone,
-            timeSlot: orderData.timeSlot,
-            meals: orderData.meals,
-            seats: orderData.seats,
-            selectedSeats: orderData.selectedSeats,
-            ownerId: orderData.ownerId
-          })
-        }).catch(e => console.error('LINE 通知失敗:', e));
         showToast(`訂單已儲存（代號 ${orderData.code}）`, 'success');
       }
     } catch (e) {
@@ -994,7 +1093,7 @@ function resetForm() {
 async function deleteOrder(id) {
   showModal('確認刪除', '確定要刪除這筆訂單嗎？', async () => {
     if (useFirebase && db) {
-      try { showLoading('刪除中...'); await deleteDoc(doc(db, 'orders', id)); ORDERS = ORDERS.filter(o => o.id !== id); renderAll(); refreshActiveTab(); showToast('訂單已刪除', 'success'); }
+      try { showLoading('刪除中...'); await deleteDoc(doc(db, 'orders', id)); showToast('訂單已刪除', 'success'); }
       catch (e) { showToast('刪除失敗：' + e.message, 'error'); }
       finally { hideLoading(); }
     } else {
@@ -1030,7 +1129,7 @@ function renderOrdersList() {
   const container = document.getElementById('ordersList');
   const visible = getVisibleOrders();
   if (visible.length === 0) { container.innerHTML = '<div class="empty-state"><div class="icon">📭</div>' + (isCustomer() ? '你還沒有訂單，請到「新增訂單」建立' : '還沒有訂單') + '</div>'; return; }
-  const sorted = [...visible].sort((a, b) => { if (a.timeSlot !== b.timeSlot) return a.timeSlot.localeCompare(b.timeSlot); return (a.code || '').localeCompare(b.code || ''); });
+  const sorted = [...visible].sort((a, b) => { if ((a.date||'') !== (b.date||'')) return (a.date||'').localeCompare(b.date||''); if (a.timeSlot !== b.timeSlot) return a.timeSlot.localeCompare(b.timeSlot); return (a.code || '').localeCompare(b.code || ''); });
   let html = `<div style="overflow-x:auto;"><table class="orders-table"><thead><tr>
     <th>代號</th><th>時段</th><th>安親班</th><th>聯絡人</th><th>手機</th><th>套餐(A/B/C)</th><th>座位(D/E)</th><th>老師</th><th>總人數</th><th>金額</th><th>操作</th>
   </tr></thead><tbody>`;
@@ -1039,6 +1138,7 @@ function renderOrdersList() {
     const color = getOrderColor(o.code);
     html += `<tr>
       <td><span class="order-code-tag" style="background:${color};">${o.code || '?'}</span></td>
+      <td style="font-size:12px; white-space:nowrap;">${o.date || '—'}</td>
       <td><span class="time-tag ${slot ? slot.tag : ''}">${o.timeSlot}</span></td>
       <td><strong>${escapeHtml(o.schoolName)}</strong></td>
       <td>${escapeHtml(o.contact)}</td><td>${escapeHtml(o.phone)}</td>
@@ -1172,9 +1272,9 @@ function printAll() {
 function exportCSV() {
   const visible = getVisibleOrders();
   if (visible.length === 0) { showToast('沒有訂單可匯出', 'error'); return; }
-  const headers = ['代號','訂單編號','建立時間','時段','安親班','聯絡人','手機','A套餐','B套餐','C套餐','D學生','D老師','E學生','E老師','總人數','金額','座位編號'];
-  const sorted = [...visible].sort((a, b) => a.timeSlot.localeCompare(b.timeSlot) || (a.code||'').localeCompare(b.code||''));
-  const rows = sorted.map(o => [o.code, o.id, new Date(o.createdAt).toLocaleString('zh-TW'), o.timeSlot, o.schoolName, o.contact, o.phone, o.meals.A, o.meals.B, o.meals.C, o.seats.D_students, o.seats.D_teachers, o.seats.E_students, o.seats.E_teachers, totalPeople(o), calcTotal(o), o.selectedSeats.join(' ')]);
+  const headers = ['代號','訂單編號','建立時間','日期','時段','安親班','聯絡人','手機','A套餐','B套餐','C套餐','D學生','D老師','E學生','E老師','總人數','金額','座位編號'];
+  const sorted = [...visible].sort((a, b) => (a.date||'').localeCompare(b.date||'') || a.timeSlot.localeCompare(b.timeSlot) || (a.code||'').localeCompare(b.code||''));
+  const rows = sorted.map(o => [o.code, o.id, new Date(o.createdAt).toLocaleString('zh-TW'), o.date || '', o.timeSlot, o.schoolName, o.contact, o.phone, o.meals.A, o.meals.B, o.meals.C, o.seats.D_students, o.seats.D_teachers, o.seats.E_students, o.seats.E_teachers, totalPeople(o), calcTotal(o), o.selectedSeats.join(' ')]);
   const csv = '﻿' + [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
@@ -1183,13 +1283,108 @@ function exportCSV() {
   showToast('已匯出 CSV', 'success');
 }
 
-function renderOverview() {
+let OVERVIEW_DATE = null;
+let CAL_VIEW_MONTH = null; // YYYY-MM string
+
+function setOverviewDate(date) {
+  OVERVIEW_DATE = date;
+  const inp = document.getElementById('overviewDate');
+  if (inp) inp.value = date;
+  const disp = document.getElementById('overviewDateDisplay');
+  if (disp) disp.textContent = formatDateChinese(date);
+  const lbl = document.getElementById('overviewSelectedDateLabel');
+  if (lbl) lbl.textContent = formatDateChinese(date);
+}
+
+function getDateStats(date) {
+  const orders = ORDERS.filter(o => o.date === date);
+  const visible = canSeeAllOrders() ? orders : orders.filter(o => o.ownerId === (CURRENT_USER && CURRENT_USER.username));
+  const totalSeats = orders.reduce((sum, o) => sum + (o.selectedSeats ? o.selectedSeats.length : 0), 0);
+  const occupancy = totalSeats / (TOTAL_SEATS * TIME_SLOTS.length);
+  return { count: visible.length, totalSeats, occupancy };
+}
+
+function renderCalendar() {
+  const container = document.getElementById('calendarWidget');
+  if (!container) return;
+  if (!CAL_VIEW_MONTH) {
+    CAL_VIEW_MONTH = (OVERVIEW_DATE || getDefaultDate()).slice(0, 7);
+  }
+  const [y, m] = CAL_VIEW_MONTH.split('-').map(Number);
+  const firstDay = new Date(y, m - 1, 1);
+  const lastDay = new Date(y, m, 0);
+  const startWeekday = firstDay.getDay(); // 0=Sun
+  const totalDays = lastDay.getDate();
+  const today = getTodayDateStr();
+
+  const canPrev = CAL_VIEW_MONTH > DATE_RANGE.start.slice(0, 7);
+  const canNext = CAL_VIEW_MONTH < DATE_RANGE.end.slice(0, 7);
+
+  let html = `<div class="calendar-header">
+    <div class="calendar-nav"><button id="calPrev"${canPrev ? '' : ' disabled'}>← 上月</button></div>
+    <h3>${y} 年 ${m} 月</h3>
+    <div class="calendar-nav"><button id="calNext"${canNext ? '' : ' disabled'}>下月 →</button></div>
+  </div>
+  <div class="calendar-grid">`;
+  ['日','一','二','三','四','五','六'].forEach((w, i) => {
+    const cls = i === 0 ? 'sun' : (i === 6 ? 'sat' : '');
+    html += `<div class="calendar-weekday ${cls}">${w}</div>`;
+  });
+  // empty cells before day 1
+  for (let i = 0; i < startWeekday; i++) html += '<div></div>';
+  for (let d = 1; d <= totalDays; d++) {
+    const dateStr = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const inRange = dateStr >= DATE_RANGE.start && dateStr <= DATE_RANGE.end;
+    const stats = inRange ? getDateStats(dateStr) : null;
+    let classes = ['calendar-day'];
+    if (!inRange) classes.push('disabled');
+    if (dateStr === OVERVIEW_DATE) classes.push('selected');
+    if (dateStr === today) classes.push('today');
+    if (stats && stats.count > 0) {
+      if (stats.occupancy > 0.9) classes.push('full');
+      else if (stats.occupancy > 0.5) classes.push('busy');
+      else classes.push('has-orders');
+    }
+    const statText = (stats && stats.count > 0) ? `${stats.count}單 ${stats.totalSeats}位` : '';
+    const occPercent = stats ? Math.round(stats.occupancy * 100) : 0;
+    html += `<div class="${classes.join(' ')}" data-date="${dateStr}">
+      <div class="day-num">${d}</div>
+      <div class="day-stats">${statText}</div>
+      ${stats && stats.count > 0 ? `<div class="occ-bar"><div class="occ-bar-fill" style="width:${Math.min(100, occPercent)}%"></div></div>` : ''}
+    </div>`;
+  }
+  html += '</div>';
+  container.innerHTML = html;
+
+  document.getElementById('calPrev')?.addEventListener('click', () => {
+    const [yy, mm] = CAL_VIEW_MONTH.split('-').map(Number);
+    const prev = new Date(yy, mm - 2, 1);
+    CAL_VIEW_MONTH = `${prev.getFullYear()}-${String(prev.getMonth()+1).padStart(2,'0')}`;
+    renderCalendar();
+  });
+  document.getElementById('calNext')?.addEventListener('click', () => {
+    const [yy, mm] = CAL_VIEW_MONTH.split('-').map(Number);
+    const nxt = new Date(yy, mm, 1);
+    CAL_VIEW_MONTH = `${nxt.getFullYear()}-${String(nxt.getMonth()+1).padStart(2,'0')}`;
+    renderCalendar();
+  });
+  container.querySelectorAll('.calendar-day:not(.disabled)').forEach(el => {
+    el.addEventListener('click', () => {
+      setOverviewDate(el.dataset.date);
+      renderCalendar();
+      renderOverviewDetails();
+    });
+  });
+}
+
+function renderOverviewDetails() {
   const container = document.getElementById('overviewGrid');
   container.innerHTML = '';
+  const date = OVERVIEW_DATE;
   TIME_SLOTS.forEach(slot => {
-    const taken = getSeatsTakenByTimeSlot(slot.id);
+    const taken = getSeatsTakenByTimeSlot(slot.id, null, date);
     const usedCount = Object.keys(taken).length;
-    const allSlotOrders = ORDERS.filter(o => o.timeSlot === slot.id);
+    const allSlotOrders = ORDERS.filter(o => o.timeSlot === slot.id && o.date === date);
     const slotOrders = canSeeAllOrders() ? allSlotOrders : allSlotOrders.filter(o => o.ownerId === (CURRENT_USER && CURRENT_USER.username));
     const slotAmount = slotOrders.reduce((sum, o) => sum + calcTotal(o), 0);
     const div = document.createElement('div');
@@ -1201,7 +1396,7 @@ function renderOverview() {
         <div>剩餘：<strong style="color:${TOTAL_SEATS-usedCount > 10 ? '#2dc653' : '#dc3545'};">${TOTAL_SEATS-usedCount}</strong></div>
         <div>金額：<strong style="color:#ff6b35;">$${slotAmount.toLocaleString()}</strong></div>
       </div>`;
-    div.appendChild(buildSeatmapDOM(slot.id));
+    div.appendChild(buildSeatmapDOM(slot.id, date));
     if (slotOrders.length > 0) {
       const sList = document.createElement('div'); sList.className = 'school-list';
       slotOrders.sort((a,b) => (a.code||'').localeCompare(b.code||'')).forEach(o => {
@@ -1214,6 +1409,41 @@ function renderOverview() {
     }
     container.appendChild(div);
   });
+}
+
+function renderOverview() {
+  if (!OVERVIEW_DATE) setOverviewDate(getDefaultDate());
+  const inp = document.getElementById('overviewDate');
+  if (inp) {
+    inp.value = OVERVIEW_DATE;
+    inp.onchange = () => {
+      if (!isValidDate(inp.value)) {
+        showToast('日期需在 2026/7/1 - 2026/8/31', 'error');
+        inp.value = OVERVIEW_DATE;
+        return;
+      }
+      setOverviewDate(inp.value);
+      CAL_VIEW_MONTH = inp.value.slice(0, 7);
+      renderCalendar();
+      renderOverviewDetails();
+    };
+  }
+  const todayBtn = document.getElementById('btnOverviewToday');
+  if (todayBtn) {
+    todayBtn.onclick = () => {
+      const t = getDefaultDate();
+      setOverviewDate(t);
+      CAL_VIEW_MONTH = t.slice(0, 7);
+      renderCalendar();
+      renderOverviewDetails();
+    };
+  }
+  const disp = document.getElementById('overviewDateDisplay');
+  if (disp) disp.textContent = formatDateChinese(OVERVIEW_DATE);
+  const lbl = document.getElementById('overviewSelectedDateLabel');
+  if (lbl) lbl.textContent = formatDateChinese(OVERVIEW_DATE);
+  renderCalendar();
+  renderOverviewDetails();
 }
 
 // ==================== 工具 ====================
@@ -1253,7 +1483,7 @@ function refreshActiveTab() {
   if (currentTab === 'overview') renderOverview();
 }
 
-function renderAll() { renderTimeSlots(); renderMeals(); renderSeatOnly(); renderSeatmap(); updateSummary(); }
+function renderAll() { renderDatePicker(); renderTimeSlots(); renderMeals(); renderSeatOnly(); renderSeatmap(); updateSummary(); }
 
 // ==================== 初始化 ====================
 document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
@@ -1269,7 +1499,7 @@ document.getElementById('btnClearAll').addEventListener('click', () => {
     if (useFirebase && db) {
       try {
         showLoading('刪除中...');
- ORDERS = []; renderAll(); refreshActiveTab();
+        for (const o of [...ORDERS]) await deleteDoc(doc(db, 'orders', o.id));
         showToast('已清空全部訂單', 'success');
       } catch (e) { showToast('刪除失敗：' + e.message, 'error'); }
       finally { hideLoading(); }
@@ -1279,6 +1509,11 @@ document.getElementById('btnClearAll').addEventListener('click', () => {
   });
 });
 ['schoolName','contact','phone'].forEach(id => { document.getElementById(id).addEventListener('input', updateSummary); });
+const orderDateInput = document.getElementById('orderDate');
+if (orderDateInput) {
+  orderDateInput.value = currentOrder.date || getDefaultDate();
+  document.getElementById('orderDateDisplay').textContent = formatDateChinese(orderDateInput.value);
+}
 
 if (!useFirebase) renderAll();
 </script>
