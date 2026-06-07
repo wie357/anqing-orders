@@ -1032,6 +1032,32 @@ function validateOrder() {
   return null;
 }
 
+// ==================== LINE 通知 ====================
+const MAKE_WEBHOOK_URL = 'https://hook.eu1.make.com/p4pzicwbu2ysx89z6owom8q5wrsnmxum';
+function notifyLINE(action, orderData, extra = {}) {
+  fetch(MAKE_WEBHOOK_URL, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      action: action,  // 'create' | 'update' | 'delete'
+      actionLabel: action === 'create' ? '🆕 新訂單' : action === 'update' ? '✏️ 訂單更新' : '🗑️ 訂單刪除',
+      operatorRole: CURRENT_USER ? CURRENT_USER.role : 'unknown',
+      operatorName: CURRENT_USER ? CURRENT_USER.name : 'unknown',
+      code: orderData.code,
+      schoolName: orderData.schoolName,
+      contact: orderData.contact,
+      phone: orderData.phone,
+      date: orderData.date,
+      timeSlot: orderData.timeSlot,
+      meals: orderData.meals,
+      seats: orderData.seats,
+      selectedSeats: orderData.selectedSeats,
+      ownerId: orderData.ownerId,
+      ...extra
+    })
+  }).catch(e => console.error('LINE 通知失敗:', e));
+}
+
 async function saveCurrentOrder() {
   updateSummary();
   const err = validateOrder();
@@ -1054,28 +1080,14 @@ async function saveCurrentOrder() {
       if (editingOrderId) {
         await setDoc(doc(db, 'orders', editingOrderId), orderData);
         showToast('訂單已更新', 'success');
+        notifyLINE('update', orderData);
       } else {
         orderData.createdAt = serverTimestamp();
         await addDoc(collection(db, 'orders'), orderData);
         showToast(`訂單已儲存（代號 ${orderData.code}）`, 'success');
 
         // 通知 LINE（透過 Make.com Webhook）
-        fetch('https://hook.eu1.make.com/p4pzicwbu2ysx89z6owom8q5wrsnmxum', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({
-            code: orderData.code,
-            schoolName: orderData.schoolName,
-            contact: orderData.contact,
-            phone: orderData.phone,
-            date: orderData.date,
-            timeSlot: orderData.timeSlot,
-            meals: orderData.meals,
-            seats: orderData.seats,
-            selectedSeats: orderData.selectedSeats,
-            ownerId: orderData.ownerId
-          })
-        }).catch(e => console.error('LINE 通知失敗:', e));
+        notifyLINE('create', orderData);
       }
     } catch (e) {
       console.error(e);
@@ -1109,15 +1121,22 @@ function resetForm() {
 }
 
 async function deleteOrder(id) {
+  const orderToDelete = ORDERS.find(o => o.id === id);
   showModal('確認刪除', '確定要刪除這筆訂單嗎？', async () => {
     if (useFirebase && db) {
-      try { showLoading('刪除中...'); await deleteDoc(doc(db, 'orders', id)); showToast('訂單已刪除', 'success'); }
+      try {
+        showLoading('刪除中...');
+        await deleteDoc(doc(db, 'orders', id));
+        showToast('訂單已刪除', 'success');
+        if (orderToDelete) notifyLINE('delete', orderToDelete);
+      }
       catch (e) { showToast('刪除失敗：' + e.message, 'error'); }
       finally { hideLoading(); }
     } else {
       ORDERS = ORDERS.filter(o => o.id !== id);
       saveLocal(); renderAll();
       showToast('訂單已刪除', 'success');
+      if (orderToDelete) notifyLINE('delete', orderToDelete);
     }
   });
 }
