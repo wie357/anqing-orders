@@ -206,11 +206,11 @@ header .cloud-status.offline { background: rgba(220, 53, 69, 0.4); }
 .role-badge.superadmin { background: #9c27b0; color: white; }
 .role-badge.admin { background: #1976d2; color: white; }
 .role-badge.customer { background: #2dc653; color: white; }
-.login-tabs { display: flex; gap: 4px; margin-bottom: 16px; border-bottom: 2px solid #f0e0c8; }
-.login-tab { flex: 1; padding: 10px; background: none; border: none; cursor: pointer; font-size: 15px; font-weight: 600; color: #888; border-bottom: 3px solid transparent; margin-bottom: -2px; font-family: inherit; }
-.login-tab.active { color: #ff6b35; border-bottom-color: #ff6b35; }
-.login-pane { display: none; }
-.login-pane.active { display: block; }
+.role-menu { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+.role-btn { width: 100%; padding: 16px; background: #fff8f0; border: 2px solid #f0e0c8; border-radius: 10px; cursor: pointer; font-size: 17px; font-weight: 700; color: #555; font-family: inherit; transition: all 0.15s; text-align: left; }
+.role-btn:hover { background: #fff3e6; border-color: #ff6b35; color: #ff6b35; }
+.role-btn.selected { background: #ff6b35; border-color: #ff6b35; color: white; }
+.role-btn-admin { border-style: dashed; }
 /* 角色相關隱藏 */
 body.role-customer .admin-only { display: none !important; }
 body.role-customer .superadmin-only { display: none !important; }
@@ -254,25 +254,18 @@ body.role-admin .superadmin-only { display: none !important; }
 <div class="login-overlay show" id="loginOverlay">
   <div class="login-card">
     <h2>🍱 訂餐系統</h2>
-    <div class="subtitle">115年7月8月安親班團體訂餐</div>
-    <div class="login-tabs">
-      <button class="login-tab active" data-pane="login">登入</button>
-      <button class="login-tab" data-pane="signup">註冊安親班</button>
+    <div class="subtitle">115年7月8月安親班團體訂餐 · 請選擇身分</div>
+    <div class="role-menu">
+      <button class="role-btn" data-identity="counter">🧾 櫃台</button>
+      <button class="role-btn" data-identity="store">🛒 販賣部</button>
+      <button class="role-btn" data-identity="anqin">🏫 安親團體</button>
+      <button class="role-btn role-btn-admin" data-identity="wei">🛡️ 管理人 wei</button>
     </div>
-    <div class="login-pane active" id="paneLogin">
-      <div class="lc-fg"><label>帳號</label><input type="text" id="loginUsername" placeholder="請輸入帳號" autocomplete="username"></div>
-      <div class="lc-fg"><label>密碼</label><input type="password" id="loginPassword" placeholder="請輸入密碼" autocomplete="current-password"></div>
-      <button class="btn-login" id="btnLogin">登入</button>
-      <div class="error-msg" id="loginError"></div>
+    <div id="adminPwBox" style="display:none;">
+      <div class="lc-fg"><label>管理人密碼</label><input type="password" id="adminPassword" placeholder="請輸入密碼" autocomplete="current-password"></div>
+      <button class="btn-login" id="btnAdminLogin">登入</button>
     </div>
-    <div class="login-pane" id="paneSignup">
-      <div class="lc-fg"><label>安親班名稱<span style="color:#dc3545">*</span></label><input type="text" id="signupSchool" placeholder="例：陽光安親班"></div>
-      <div class="lc-fg"><label>帳號（英數）<span style="color:#dc3545">*</span></label><input type="text" id="signupUsername" placeholder="例：yangguang01" autocomplete="off"></div>
-      <div class="lc-fg"><label>密碼<span style="color:#dc3545">*</span></label><input type="password" id="signupPassword" placeholder="至少 4 字" autocomplete="new-password"></div>
-      <button class="btn-login" id="btnSignup">註冊並登入</button>
-      <div class="error-msg" id="signupError"></div>
-      <div style="font-size:11px; color:#999; margin-top:8px; text-align:center;">註冊後請記住帳密，下次直接登入</div>
-    </div>
+    <div class="error-msg" id="loginError"></div>
   </div>
 </div>
 
@@ -418,21 +411,6 @@ body.role-admin .superadmin-only { display: none !important; }
   <div id="loadingText" style="font-weight: 600; color: #555;">載入中...</div>
 </div>
 
-<script>
-(function(){
-  // 登入/註冊頁籤切換 (純 UI)
-  document.addEventListener('DOMContentLoaded', function(){
-    document.querySelectorAll('.login-tab').forEach(function(tab){
-      tab.addEventListener('click', function(){
-        var pane = tab.getAttribute('data-pane');
-        document.querySelectorAll('.login-tab').forEach(function(t){ t.classList.toggle('active', t === tab); });
-        document.querySelectorAll('.login-pane').forEach(function(p){ p.classList.toggle('active', p.id === 'pane' + pane.charAt(0).toUpperCase() + pane.slice(1)); });
-      });
-    });
-  });
-})();
-</script>
-
 <script type="module">
 // ============================================================
 // ⚙️  FIREBASE_CONFIG ─ 請貼上你從 Firebase Console 取得的設定值
@@ -452,12 +430,14 @@ const FIREBASE_CONFIG = {
 };
 // ============================================================
 
-// ==================== 帳號 / 角色 ====================
-const HARDCODED_ACCOUNTS = {
-  'C930357c': { password: '23709556', role: 'superadmin', name: '超級管理員' },
-  'wei01': { password: '12345', role: 'admin', name: 'wei01' }
+// ==================== 身分選單 / 角色 ====================
+const IDENTITIES = {
+  counter: { name: '櫃台',     role: 'customer' },
+  store:   { name: '販賣部',   role: 'customer' },
+  anqin:   { name: '安親團體', role: 'customer' },
+  wei:     { name: '管理人wei', role: 'superadmin', password: '23709556' }
 };
-const SESSION_KEY = 'orderbook_login_v1';
+const SESSION_KEY = 'orderbook_login_v2';
 const SESSION_DUR = 8 * 60 * 60 * 1000;
 let CURRENT_USER = null;
 
@@ -500,107 +480,62 @@ function hideLoginUI() {
     '<span class="role-badge ' + CURRENT_USER.role + '">' + (roleLabels[CURRENT_USER.role] || '') + '</span> ' + escapeHtml(CURRENT_USER.name);
 }
 
-async function tryLogin(username, password) {
-  // 硬寫死管理員
-  if (HARDCODED_ACCOUNTS[username] && HARDCODED_ACCOUNTS[username].password === password) {
-    return { username: username, role: HARDCODED_ACCOUNTS[username].role, name: HARDCODED_ACCOUNTS[username].name };
-  }
-  // 不允許用註冊帳號名取得管理員權限
-  if (HARDCODED_ACCOUNTS[username]) return null;
-  // 查 Firestore 客戶帳號
-  if (!db) return null;
-  try {
-    const snap = await getDoc(doc(db, 'accounts', username));
-    if (snap.exists()) {
-      const data = snap.data();
-      if (data.password === password) {
-        return { username: username, role: 'customer', name: data.schoolName || username };
-      }
-    }
-  } catch(e) { console.error('login err', e); }
-  return null;
-}
-
-async function trySignup(username, password, schoolName) {
-  if (!username || !password || !schoolName) return { err: '所有欄位都要填' };
-  if (!/^[a-zA-Z0-9_]{3,20}$/.test(username)) return { err: '帳號需 3-20 個英數字或底線' };
-  if (password.length < 4) return { err: '密碼至少 4 字' };
-  if (HARDCODED_ACCOUNTS[username]) return { err: '此帳號已被使用' };
-  if (!db) return { err: '雲端尚未連線' };
-  try {
-    const ref = doc(db, 'accounts', username);
-    const existing = await getDoc(ref);
-    if (existing.exists()) return { err: '帳號已存在' };
-    await setDoc(ref, { password: password, schoolName: schoolName, role: 'customer', createdAt: serverTimestamp() });
-    return { ok: { username: username, role: 'customer', name: schoolName } };
-  } catch(e) { return { err: '註冊失敗：' + e.message }; }
+function loginAs(key) {
+  const idy = IDENTITIES[key];
+  const user = { username: key, role: idy.role, name: idy.name };
+  CURRENT_USER = user;
+  saveSession(user);
+  applyRoleClass();
+  hideLoginUI();
+  document.getElementById('loginError').textContent = '';
+  document.getElementById('adminPwBox').style.display = 'none';
+  document.getElementById('adminPassword').value = '';
+  document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('selected'));
+  refreshActiveTab();
+  renderAll();
 }
 
 function bindAuthHandlers() {
-  document.getElementById('btnLogin').addEventListener('click', async () => {
-    const u = document.getElementById('loginUsername').value.trim();
-    const p = document.getElementById('loginPassword').value;
-    const e = document.getElementById('loginError');
-    if (!u || !p) { e.textContent = '請輸入帳號和密碼'; return; }
-    e.textContent = '驗證中...';
-    const user = await tryLogin(u, p);
-    if (user) {
-      CURRENT_USER = user;
-      saveSession(user);
-      applyRoleClass();
-      hideLoginUI();
-      e.textContent = '';
-      refreshActiveTab();
-      renderAll();
+  document.querySelectorAll('.role-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const key = btn.getAttribute('data-identity');
+      const err = document.getElementById('loginError');
+      err.textContent = '';
+      if (IDENTITIES[key] && IDENTITIES[key].password) {
+        // 管理人需輸入密碼
+        document.querySelectorAll('.role-btn').forEach(b => b.classList.toggle('selected', b === btn));
+        document.getElementById('adminPwBox').style.display = 'block';
+        document.getElementById('adminPassword').focus();
+      } else if (IDENTITIES[key]) {
+        loginAs(key);
+      }
+    });
+  });
+  document.getElementById('btnAdminLogin').addEventListener('click', () => {
+    const p = document.getElementById('adminPassword').value;
+    const err = document.getElementById('loginError');
+    if (p === IDENTITIES.wei.password) {
+      loginAs('wei');
     } else {
-      e.textContent = '❌ 帳號或密碼錯誤';
+      err.textContent = '❌ 密碼錯誤';
     }
   });
-  document.getElementById('btnSignup').addEventListener('click', async () => {
-    const school = document.getElementById('signupSchool').value.trim();
-    const u = document.getElementById('signupUsername').value.trim();
-    const p = document.getElementById('signupPassword').value;
-    const e = document.getElementById('signupError');
-    e.textContent = '註冊中...';
-    const r = await trySignup(u, p, school);
-    if (r.ok) {
-      CURRENT_USER = r.ok;
-      saveSession(r.ok);
-      applyRoleClass();
-      hideLoginUI();
-      e.textContent = '';
-      refreshActiveTab();
-      renderAll();
-    } else {
-      e.textContent = '❌ ' + r.err;
-    }
+  document.getElementById('adminPassword').addEventListener('keypress', (ev) => {
+    if (ev.key === 'Enter') document.getElementById('btnAdminLogin').click();
   });
   document.getElementById('btnLogout').addEventListener('click', () => {
     clearSession();
-    document.getElementById('loginUsername').value = '';
-    document.getElementById('loginPassword').value = '';
+    document.getElementById('adminPwBox').style.display = 'none';
+    document.getElementById('adminPassword').value = '';
+    document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('selected'));
     showLoginUI();
-  });
-  ['loginUsername','loginPassword','signupSchool','signupUsername','signupPassword'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.addEventListener('keypress', (ev) => {
-      if (ev.key !== 'Enter') return;
-      if (id.startsWith('signup')) document.getElementById('btnSignup').click();
-      else document.getElementById('btnLogin').click();
-    });
   });
 }
 
 function checkExistingSession() {
   const s = loadSession();
-  if (!s) { showLoginUI(); return false; }
-  if (HARDCODED_ACCOUNTS[s.username] && HARDCODED_ACCOUNTS[s.username].role === s.role) {
-    CURRENT_USER = { username: s.username, role: s.role, name: s.name };
-    applyRoleClass();
-    hideLoginUI();
-    return true;
-  } else if (s.role === 'customer') {
-    CURRENT_USER = { username: s.username, role: s.role, name: s.name };
+  if (s && IDENTITIES[s.username] && IDENTITIES[s.username].role === s.role) {
+    CURRENT_USER = { username: s.username, role: s.role, name: IDENTITIES[s.username].name };
     applyRoleClass();
     hideLoginUI();
     return true;
@@ -1594,3 +1529,4 @@ if (!useFirebase) renderAll();
 </script>
 </body>
 </html>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 
