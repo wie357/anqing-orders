@@ -1035,24 +1035,62 @@ function validateOrder() {
 // ==================== LINE 通知 ====================
 const MAKE_WEBHOOK_URL = 'https://hook.eu1.make.com/p4pzicwbu2ysx89z6owom8q5wrsnmxum';
 function notifyLINE(action, orderData, extra = {}) {
+  const m = orderData.meals || { A: 0, B: 0, C: 0 };
+  const s = orderData.seats || { D_students: 0, D_teachers: 0, E_students: 0, E_teachers: 0 };
+  const totalPeople = (m.A||0) + (m.B||0) + (m.C||0) + (s.D_students||0) + (s.D_teachers||0) + (s.E_students||0) + (s.E_teachers||0);
+  const totalAmount = (m.A||0)*120 + (m.B||0)*120 + (m.C||0)*120 + (s.D_students||0)*30 + (s.E_students||0)*40;
+  // 套餐摘要（只顯示有點的）
+  const mealsList = [];
+  if (m.A) mealsList.push(`A起司雞肉捲×${m.A}`);
+  if (m.B) mealsList.push(`B起司燻雞派×${m.B}`);
+  if (m.C) mealsList.push(`C招牌便當×${m.C}`);
+  const mealsSummary = mealsList.length > 0 ? mealsList.join('、') : '無';
+  // 座位區摘要
+  const seatsList = [];
+  if (s.D_students) seatsList.push(`D區學生×${s.D_students}`);
+  if (s.D_teachers) seatsList.push(`D區老師×${s.D_teachers}(免費)`);
+  if (s.E_students) seatsList.push(`E區學生×${s.E_students}`);
+  if (s.E_teachers) seatsList.push(`E區老師×${s.E_teachers}(免費)`);
+  const seatsSummary = seatsList.length > 0 ? seatsList.join('、') : '無';
+  // 座位號碼字串
+  const seatsStr = (orderData.selectedSeats || []).join('、');
+  // 用餐日期 + 星期
+  let dateLabel = orderData.date || '';
+  if (dateLabel) {
+    const [y,mo,d] = dateLabel.split('-').map(Number);
+    const wd = ['日','一','二','三','四','五','六'][new Date(y, mo-1, d).getDay()];
+    dateLabel = `${y}/${mo}/${d} (週${wd})`;
+  }
+  // 操作時間
+  const now = new Date();
+  const timeNow = `${now.getMonth()+1}/${now.getDate()} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+
   fetch(MAKE_WEBHOOK_URL, {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({
-      action: action,  // 'create' | 'update' | 'delete'
+      action: action,
       actionLabel: action === 'create' ? '🆕 新訂單' : action === 'update' ? '✏️ 訂單更新' : '🗑️ 訂單刪除',
       operatorRole: CURRENT_USER ? CURRENT_USER.role : 'unknown',
       operatorName: CURRENT_USER ? CURRENT_USER.name : 'unknown',
+      operationTime: timeNow,
       code: orderData.code,
       schoolName: orderData.schoolName,
       contact: orderData.contact,
       phone: orderData.phone,
       date: orderData.date,
+      dateLabel: dateLabel,
       timeSlot: orderData.timeSlot,
       meals: orderData.meals,
       seats: orderData.seats,
       selectedSeats: orderData.selectedSeats,
       ownerId: orderData.ownerId,
+      // 預先計算的彙整欄位（讓 Make.com 範本更簡單）
+      totalPeople: totalPeople,
+      totalAmount: totalAmount,
+      mealsSummary: mealsSummary,
+      seatsSummary: seatsSummary,
+      seatsStr: seatsStr,
       ...extra
     })
   }).catch(e => console.error('LINE 通知失敗:', e));
