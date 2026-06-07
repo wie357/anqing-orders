@@ -6,114 +6,114 @@
 <title>115年7月8月安親班團體訂餐系統</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: -apple-system, BlinkMacSystemFont, "Microsoft JhengHei", "PingFang TC", "Segoe UI", sans-serif; background: #fff8f0; color: #333; line-height: 1.6; min-height: 100vh; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Microsoft JhengHei", "PingFang TC", "Segoe UI", sans-serif; background: #f4f6f9; color: #333; line-height: 1.6; min-height: 100vh; }
 .container { max-width: 1280px; margin: 0 auto; padding: 16px; }
-header { background: linear-gradient(135deg, #ff6b35, #f7931e); color: white; padding: 28px 20px; text-align: center; border-radius: 14px; margin-bottom: 18px; box-shadow: 0 4px 12px rgba(255,107,53,0.25); }
+header { background: linear-gradient(135deg, #1e3a5f, #2b4c7e); color: white; padding: 28px 20px; text-align: center; border-radius: 14px; margin-bottom: 18px; box-shadow: 0 4px 12px rgba(30,58,95,0.25); }
 header h1 { font-size: clamp(20px, 4vw, 30px); margin-bottom: 6px; letter-spacing: 1px; }
 header .sub { opacity: 0.95; font-size: 14px; }
 header .cloud-status { display: inline-block; margin-top: 8px; padding: 4px 12px; background: rgba(255,255,255,0.2); border-radius: 12px; font-size: 12px; }
-header .cloud-status.online { background: rgba(45, 198, 83, 0.4); }
+header .cloud-status.online { background: rgba(46, 139, 87, 0.4); }
 header .cloud-status.offline { background: rgba(220, 53, 69, 0.4); }
 
 .tabs { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
-.tab-btn { flex: 1; min-width: 130px; padding: 14px 16px; background: white; border: 2px solid #e5d5c0; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 15px; transition: all 0.2s; color: #555; }
-.tab-btn.active { background: #ff6b35; color: white; border-color: #ff6b35; box-shadow: 0 4px 8px rgba(255,107,53,0.25); }
-.tab-btn:hover:not(.active) { background: #fff3e6; }
+.tab-btn { flex: 1; min-width: 130px; padding: 14px 16px; background: white; border: 2px solid #d8dfe9; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 15px; transition: all 0.2s; color: #555; }
+.tab-btn.active { background: #1e3a5f; color: white; border-color: #1e3a5f; box-shadow: 0 4px 8px rgba(30,58,95,0.25); }
+.tab-btn:hover:not(.active) { background: #e9eef5; }
 .tab-content { display: none; }
 .tab-content.active { display: block; animation: fadeIn 0.3s; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
 .section { background: white; border-radius: 12px; padding: 22px; margin-bottom: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
-.section h2 { font-size: 17px; margin-bottom: 14px; color: #ff6b35; border-left: 5px solid #ff6b35; padding-left: 12px; }
+.section h2 { font-size: 17px; margin-bottom: 14px; color: #1e3a5f; border-left: 5px solid #1e3a5f; padding-left: 12px; }
 
-.setup-banner { background: linear-gradient(135deg, #fff3e6, #ffe4cc); border: 2px dashed #ff6b35; padding: 20px; border-radius: 12px; margin-bottom: 14px; }
-.setup-banner h3 { color: #ff6b35; margin-bottom: 8px; }
+.setup-banner { background: linear-gradient(135deg, #e9eef5, #d9e2ee); border: 2px dashed #1e3a5f; padding: 20px; border-radius: 12px; margin-bottom: 14px; }
+.setup-banner h3 { color: #1e3a5f; margin-bottom: 8px; }
 .setup-banner p { font-size: 14px; color: #555; margin-bottom: 8px; }
 .setup-banner ol { margin-left: 22px; font-size: 13px; color: #555; line-height: 1.8; }
-.setup-banner code { background: #fff; padding: 2px 6px; border-radius: 4px; font-size: 12px; color: #d84315; }
+.setup-banner code { background: #fff; padding: 2px 6px; border-radius: 4px; font-size: 12px; color: #16304f; }
 
 .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
 .form-group { display: flex; flex-direction: column; }
 .form-group label { font-weight: 600; margin-bottom: 6px; font-size: 14px; color: #555; }
 .form-group label .required { color: #dc3545; margin-left: 2px; }
-.form-group input, .form-group select { padding: 11px 12px; border: 2px solid #e5d5c0; border-radius: 8px; font-size: 15px; transition: border-color 0.2s; font-family: inherit; }
-.form-group input:focus, .form-group select:focus { border-color: #ff6b35; outline: none; }
+.form-group input, .form-group select { padding: 11px 12px; border: 2px solid #d8dfe9; border-radius: 8px; font-size: 15px; transition: border-color 0.2s; font-family: inherit; }
+.form-group input:focus, .form-group select:focus { border-color: #1e3a5f; outline: none; }
 
 .time-slots { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
-.time-slot-card { padding: 18px; border: 2px solid #e5d5c0; border-radius: 10px; cursor: pointer; text-align: center; background: white; transition: all 0.2s; }
-.time-slot-card:hover { background: #fff3e6; }
-.time-slot-card.selected { background: linear-gradient(135deg, #ff6b35, #f7931e); color: white; border-color: #ff6b35; }
+.time-slot-card { padding: 18px; border: 2px solid #d8dfe9; border-radius: 10px; cursor: pointer; text-align: center; background: white; transition: all 0.2s; }
+.time-slot-card:hover { background: #e9eef5; }
+.time-slot-card.selected { background: linear-gradient(135deg, #1e3a5f, #2b4c7e); color: white; border-color: #1e3a5f; }
 .time-slot-card .time { font-size: 19px; font-weight: 700; }
 .time-slot-card .info { font-size: 12px; margin-top: 4px; opacity: 0.85; }
 
 .meal-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
-.meal-card { border: 2px solid #e5d5c0; border-radius: 10px; padding: 14px; background: #fffaf3; display: flex; flex-direction: column; }
-.meal-card.combo { border-color: #ffb74d; }
-.meal-card.seat-only { border-color: #81c784; background: #f1f8e9; }
-.meal-card .code { display: inline-block; background: #ff6b35; color: white; padding: 4px 12px; border-radius: 6px; font-weight: 700; margin-bottom: 8px; font-size: 14px; width: fit-content; }
-.meal-card.seat-only .code { background: #2dc653; }
+.meal-card { border: 2px solid #d8dfe9; border-radius: 10px; padding: 14px; background: #f8fafc; display: flex; flex-direction: column; }
+.meal-card.combo { border-color: #94a8c4; }
+.meal-card.seat-only { border-color: #7fae93; background: #eef4f0; }
+.meal-card .code { display: inline-block; background: #1e3a5f; color: white; padding: 4px 12px; border-radius: 6px; font-weight: 700; margin-bottom: 8px; font-size: 14px; width: fit-content; }
+.meal-card.seat-only .code { background: #2e8b57; }
 .meal-card .name { font-weight: 600; margin-bottom: 4px; font-size: 14px; }
 .meal-card .price { font-size: 12px; color: #888; margin-bottom: 8px; }
-.meal-card .price strong { color: #ff6b35; font-size: 14px; }
-.meal-card.seat-only .price strong { color: #2dc653; }
+.meal-card .price strong { color: #1e3a5f; font-size: 14px; }
+.meal-card.seat-only .price strong { color: #2e8b57; }
 .meal-card .qty-row { display: flex; align-items: center; gap: 8px; margin-top: auto; }
-.qty-btn { width: 36px; height: 36px; border: 2px solid #e5d5c0; background: white; border-radius: 8px; font-size: 18px; font-weight: 700; cursor: pointer; user-select: none; transition: all 0.15s; }
-.qty-btn:hover { background: #fff3e6; border-color: #ff6b35; color: #ff6b35; }
+.qty-btn { width: 36px; height: 36px; border: 2px solid #d8dfe9; background: white; border-radius: 8px; font-size: 18px; font-weight: 700; cursor: pointer; user-select: none; transition: all 0.15s; }
+.qty-btn:hover { background: #e9eef5; border-color: #1e3a5f; color: #1e3a5f; }
 .qty-btn:active { transform: scale(0.95); }
-.qty-input { flex: 1; text-align: center; font-size: 17px; font-weight: 700; padding: 8px; border: 2px solid #e5d5c0; border-radius: 8px; font-family: inherit; -moz-appearance: textfield; }
+.qty-input { flex: 1; text-align: center; font-size: 17px; font-weight: 700; padding: 8px; border: 2px solid #d8dfe9; border-radius: 8px; font-family: inherit; -moz-appearance: textfield; }
 .qty-input::-webkit-outer-spin-button, .qty-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .teacher-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; padding-top: 8px; border-top: 1px dashed #ddd; }
 .teacher-row label { font-size: 12px; color: #777; flex: 1; }
-.teacher-row input { width: 64px; padding: 6px; border: 1px solid #e5d5c0; border-radius: 6px; text-align: center; font-family: inherit; font-size: 14px; }
+.teacher-row input { width: 64px; padding: 6px; border: 1px solid #d8dfe9; border-radius: 6px; text-align: center; font-family: inherit; font-size: 14px; }
 
-.seatmap-container { background: linear-gradient(180deg, #fffaf3, #fff8f0); border-radius: 12px; padding: 20px; overflow-x: auto; border: 2px dashed #e5d5c0; }
-.seatmap-stage { background: linear-gradient(135deg, #4caf50, #2dc653); color: white; text-align: center; padding: 8px; border-radius: 8px; margin-bottom: 22px; font-weight: 600; font-size: 13px; letter-spacing: 2px; }
+.seatmap-container { background: linear-gradient(180deg, #f8fafc, #f4f6f9); border-radius: 12px; padding: 20px; overflow-x: auto; border: 2px dashed #d8dfe9; }
+.seatmap-stage { background: linear-gradient(135deg, #35507a, #1e3a5f); color: white; text-align: center; padding: 8px; border-radius: 8px; margin-bottom: 22px; font-weight: 600; font-size: 13px; letter-spacing: 2px; }
 .tables-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px 18px; min-width: 720px; }
 .long-table { display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .long-table .seats-row { display: flex; gap: 6px; flex-wrap: nowrap; justify-content: center; }
-.long-table .table-body { width: 100%; background: linear-gradient(180deg, #b5905e, #8b6f47); color: white; text-align: center; padding: 12px 6px; border-radius: 6px; font-weight: 700; font-size: 13px; box-shadow: 0 2px 4px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.2); letter-spacing: 1px; }
-.seat { width: 36px; height: 36px; border-radius: 50%; background: white; border: 2px solid #b5a795; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #666; transition: all 0.15s; position: relative; flex-shrink: 0; }
-.seat:hover:not(.taken) { transform: scale(1.15); border-color: #ff6b35; box-shadow: 0 2px 6px rgba(255,107,53,0.3); }
-.seat.selected { background: #ff6b35; border-color: #d84315; color: white; transform: scale(1.05); }
+.long-table .table-body { width: 100%; background: linear-gradient(180deg, #64748b, #475569); color: white; text-align: center; padding: 12px 6px; border-radius: 6px; font-weight: 700; font-size: 13px; box-shadow: 0 2px 4px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.2); letter-spacing: 1px; }
+.seat { width: 36px; height: 36px; border-radius: 50%; background: white; border: 2px solid #aebacc; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #666; transition: all 0.15s; position: relative; flex-shrink: 0; }
+.seat:hover:not(.taken) { transform: scale(1.15); border-color: #1e3a5f; box-shadow: 0 2px 6px rgba(30,58,95,0.3); }
+.seat.selected { background: #1e3a5f; border-color: #16304f; color: white; transform: scale(1.05); }
 .seat.taken { cursor: not-allowed; color: white; border-color: rgba(0,0,0,0.2); font-size: 10px; }
 .seat.taken-tooltip:hover::after { content: attr(data-tooltip); position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px; white-space: nowrap; z-index: 10; margin-bottom: 4px; }
 
-.summary-bar { position: sticky; bottom: 12px; background: white; border: 3px solid #ff6b35; padding: 16px 22px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 20px; box-shadow: 0 6px 18px rgba(0,0,0,0.12); border-radius: 14px; z-index: 5; }
+.summary-bar { position: sticky; bottom: 12px; background: white; border: 3px solid #1e3a5f; padding: 16px 22px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 20px; box-shadow: 0 6px 18px rgba(0,0,0,0.12); border-radius: 14px; z-index: 5; }
 .summary-info { display: flex; gap: 22px; flex-wrap: wrap; }
 .summary-stat .label { font-size: 12px; color: #888; }
 .summary-stat .value { font-size: 20px; font-weight: 700; color: #333; }
-.summary-stat.total .value { color: #ff6b35; font-size: 28px; }
+.summary-stat.total .value { color: #1e3a5f; font-size: 28px; }
 .summary-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
 .btn { padding: 11px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; transition: all 0.2s; font-family: inherit; }
 .btn:active { transform: scale(0.98); }
-.btn-primary { background: #ff6b35; color: white; }
-.btn-primary:hover { background: #e55a25; }
-.btn-secondary { background: #e5d5c0; color: #333; }
-.btn-secondary:hover { background: #d6c2a8; }
+.btn-primary { background: #1e3a5f; color: white; }
+.btn-primary:hover { background: #16304f; }
+.btn-secondary { background: #d8dfe9; color: #333; }
+.btn-secondary:hover { background: #c3cedd; }
 .btn-danger { background: #dc3545; color: white; }
 .btn-danger:hover { background: #c82333; }
-.btn-success { background: #2dc653; color: white; }
-.btn-success:hover { background: #25a244; }
+.btn-success { background: #2e8b57; color: white; }
+.btn-success:hover { background: #25714a; }
 .btn-info { background: #1976d2; color: white; }
 .btn-info:hover { background: #1565c0; }
 .btn-sm { padding: 6px 12px; font-size: 13px; }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; margin-bottom: 12px; padding: 10px; background: white; border-radius: 8px; border: 1px solid #e5d5c0; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; margin-bottom: 12px; padding: 10px; background: white; border-radius: 8px; border: 1px solid #d8dfe9; }
 .legend-item { display: flex; align-items: center; gap: 6px; }
-.legend-dot { width: 18px; height: 18px; border-radius: 50%; border: 2px solid #b5a795; flex-shrink: 0; }
+.legend-dot { width: 18px; height: 18px; border-radius: 50%; border: 2px solid #aebacc; flex-shrink: 0; }
 
 .orders-table { width: 100%; border-collapse: collapse; font-size: 14px; }
-.orders-table th, .orders-table td { padding: 11px 10px; text-align: left; border-bottom: 1px solid #e5d5c0; }
-.orders-table th { background: #fff3e6; font-weight: 600; color: #555; }
-.orders-table tbody tr:hover { background: #fffaf3; }
+.orders-table th, .orders-table td { padding: 11px 10px; text-align: left; border-bottom: 1px solid #d8dfe9; }
+.orders-table th { background: #e9eef5; font-weight: 600; color: #555; }
+.orders-table tbody tr:hover { background: #f8fafc; }
 .orders-table td.actions { white-space: nowrap; }
 .order-code-tag { display: inline-block; width: 32px; height: 32px; line-height: 28px; border-radius: 50%; text-align: center; font-weight: 800; color: white; font-size: 14px; border: 2px solid rgba(255,255,255,0.4); box-shadow: 0 2px 4px rgba(0,0,0,0.15); }
 
 .time-tag { display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; color: white; }
-.time-tag.t1 { background: #ff6b35; }
-.time-tag.t2 { background: #2dc653; }
+.time-tag.t1 { background: #1e3a5f; }
+.time-tag.t2 { background: #2e8b57; }
 .time-tag.t3 { background: #1976d2; }
 
 .empty-state { text-align: center; padding: 40px 20px; color: #999; }
@@ -122,61 +122,61 @@ header .cloud-status.offline { background: rgba(220, 53, 69, 0.4); }
 .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; padding: 20px; }
 .modal.show { display: flex; }
 .modal-content { background: white; padding: 24px; border-radius: 12px; max-width: 480px; width: 100%; text-align: center; }
-.modal-content h3 { margin-bottom: 12px; color: #ff6b35; }
+.modal-content h3 { margin-bottom: 12px; color: #1e3a5f; }
 .modal-content p { margin-bottom: 18px; color: #555; }
 .modal-actions { display: flex; gap: 8px; justify-content: center; }
 
-.toast { position: fixed; top: 20px; right: 20px; background: #2dc653; color: white; padding: 12px 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 200; opacity: 0; transition: opacity 0.3s; font-weight: 600; }
+.toast { position: fixed; top: 20px; right: 20px; background: #2e8b57; color: white; padding: 12px 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 200; opacity: 0; transition: opacity 0.3s; font-weight: 600; }
 .toast.show { opacity: 1; }
 .toast.error { background: #dc3545; }
 
 .overview-grid { display: grid; grid-template-columns: 1fr; gap: 18px; }
-.overview-time { padding: 14px; background: #fffaf3; border-radius: 10px; border: 1px solid #e5d5c0; }
+.overview-time { padding: 14px; background: #f8fafc; border-radius: 10px; border: 1px solid #d8dfe9; }
 .overview-time h3 { font-size: 16px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
 .overview-time .stats { display: flex; gap: 20px; flex-wrap: wrap; font-size: 13px; color: #666; margin-bottom: 12px; }
 .overview-time .stats strong { color: #333; }
 .school-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; font-size: 13px; }
-.school-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px 4px 4px; background: white; border-radius: 16px; border: 1px solid #e5d5c0; }
+.school-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px 4px 4px; background: white; border-radius: 16px; border: 1px solid #d8dfe9; }
 .school-chip .code-dot { width: 24px; height: 24px; border-radius: 50%; color: white; font-weight: 800; font-size: 12px; text-align: center; line-height: 22px; }
 
 .print-card { background: white; padding: 20px; border-radius: 8px; border: 1px solid #ddd; }
-.print-card h2 { font-size: 22px; text-align: center; border-bottom: 2px solid #ff6b35; padding-bottom: 8px; margin-bottom: 12px; }
+.print-card h2 { font-size: 22px; text-align: center; border-bottom: 2px solid #1e3a5f; padding-bottom: 8px; margin-bottom: 12px; }
 .print-card .info-row { display: grid; grid-template-columns: 120px 1fr; gap: 8px; margin-bottom: 6px; padding: 6px 0; border-bottom: 1px dashed #eee; }
 .print-card .info-row .label { font-weight: 700; color: #555; }
 .print-card table { width: 100%; border-collapse: collapse; margin: 12px 0; }
 .print-card th, .print-card td { padding: 8px; border: 1px solid #ddd; text-align: left; font-size: 13px; }
-.print-card th { background: #fff3e6; }
-.print-card .total-line { text-align: right; font-size: 18px; font-weight: 700; color: #ff6b35; padding: 12px; }
+.print-card th { background: #e9eef5; }
+.print-card .total-line { text-align: right; font-size: 18px; font-weight: 700; color: #1e3a5f; padding: 12px; }
 
 .loading-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.9); display: none; align-items: center; justify-content: center; z-index: 300; flex-direction: column; gap: 12px; }
 .loading-overlay.show { display: flex; }
-.spinner { width: 40px; height: 40px; border: 4px solid #fff3e6; border-top-color: #ff6b35; border-radius: 50%; animation: spin 0.8s linear infinite; }
-.login-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(135deg, #ff6b35, #f7931e); display: none; align-items: center; justify-content: center; z-index: 500; padding: 20px; }
+.spinner { width: 40px; height: 40px; border: 4px solid #e9eef5; border-top-color: #1e3a5f; border-radius: 50%; animation: spin 0.8s linear infinite; }
+.login-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(135deg, #1e3a5f, #2b4c7e); display: none; align-items: center; justify-content: center; z-index: 500; padding: 20px; }
 .login-overlay.show { display: flex; }
 .login-card { background: white; padding: 36px 28px; border-radius: 16px; max-width: 400px; width: 100%; box-shadow: 0 12px 32px rgba(0,0,0,0.2); }
-.login-card h2 { color: #ff6b35; text-align: center; margin-bottom: 6px; font-size: 22px; }
+.login-card h2 { color: #1e3a5f; text-align: center; margin-bottom: 6px; font-size: 22px; }
 .login-card .subtitle { text-align: center; color: #888; font-size: 13px; margin-bottom: 24px; }
 .lc-fg { margin-bottom: 14px; display: flex; flex-direction: column; }
 .lc-fg label { font-weight: 600; margin-bottom: 6px; font-size: 14px; color: #555; }
-.lc-fg input { width: 100%; padding: 12px 14px; border: 2px solid #e5d5c0; border-radius: 8px; font-size: 16px; font-family: inherit; }
-.lc-fg input:focus { border-color: #ff6b35; outline: none; }
-.btn-login { width: 100%; padding: 14px; background: linear-gradient(135deg, #ff6b35, #f7931e); color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 10px; font-family: inherit; }
-.btn-login:hover { background: #e55a25; }
+.lc-fg input { width: 100%; padding: 12px 14px; border: 2px solid #d8dfe9; border-radius: 8px; font-size: 16px; font-family: inherit; }
+.lc-fg input:focus { border-color: #1e3a5f; outline: none; }
+.btn-login { width: 100%; padding: 14px; background: linear-gradient(135deg, #1e3a5f, #2b4c7e); color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 10px; font-family: inherit; }
+.btn-login:hover { background: #16304f; }
 .error-msg { color: #dc3545; font-size: 13px; text-align: center; margin-top: 10px; min-height: 20px; }
 .user-info { display: inline-flex; align-items: center; gap: 8px; margin-left: 10px; font-size: 13px; color: white; }
 .user-info .logout-btn { background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.4); padding: 4px 10px; border-radius: 8px; cursor: pointer; font-size: 12px; font-family: inherit; }
 .user-info .logout-btn:hover { background: rgba(255,255,255,0.3); }
 .date-picker-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .date-picker-row label { font-weight: 600; color: #555; font-size: 14px; }
-.date-picker-row input[type=date], .date-picker-row select { padding: 10px 12px; border: 2px solid #e5d5c0; border-radius: 8px; font-size: 15px; font-family: inherit; min-width: 200px; }
-.date-picker-row input[type=date]:focus, .date-picker-row select:focus { border-color: #ff6b35; outline: none; }
-.date-display { font-size: 18px; font-weight: 700; color: #ff6b35; }
-.calendar { background: white; border-radius: 12px; padding: 16px; border: 1px solid #e5d5c0; margin-bottom: 16px; }
+.date-picker-row input[type=date], .date-picker-row select { padding: 10px 12px; border: 2px solid #d8dfe9; border-radius: 8px; font-size: 15px; font-family: inherit; min-width: 200px; }
+.date-picker-row input[type=date]:focus, .date-picker-row select:focus { border-color: #1e3a5f; outline: none; }
+.date-display { font-size: 18px; font-weight: 700; color: #1e3a5f; }
+.calendar { background: white; border-radius: 12px; padding: 16px; border: 1px solid #d8dfe9; margin-bottom: 16px; }
 .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-.calendar-header h3 { color: #ff6b35; font-size: 17px; }
+.calendar-header h3 { color: #1e3a5f; font-size: 17px; }
 .calendar-nav { display: flex; gap: 6px; }
-.calendar-nav button { padding: 6px 14px; border: 1px solid #e5d5c0; background: white; border-radius: 6px; cursor: pointer; font-weight: 600; font-family: inherit; }
-.calendar-nav button:hover:not(:disabled) { background: #fff3e6; border-color: #ff6b35; color: #ff6b35; }
+.calendar-nav button { padding: 6px 14px; border: 1px solid #d8dfe9; background: white; border-radius: 6px; cursor: pointer; font-weight: 600; font-family: inherit; }
+.calendar-nav button:hover:not(:disabled) { background: #e9eef5; border-color: #1e3a5f; color: #1e3a5f; }
 .calendar-nav button:disabled { opacity: 0.4; cursor: not-allowed; }
 .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
 .calendar-weekday { text-align: center; font-weight: 700; color: #888; font-size: 12px; padding: 6px 0; }
@@ -185,31 +185,31 @@ header .cloud-status.offline { background: rgba(220, 53, 69, 0.4); }
 .calendar-day { aspect-ratio: 1; border-radius: 8px; padding: 4px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; cursor: pointer; transition: all 0.15s; border: 2px solid transparent; background: #f9f9f9; font-size: 12px; }
 .calendar-day:hover:not(.disabled) { transform: scale(1.05); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
 .calendar-day.disabled { opacity: 0.3; cursor: not-allowed; background: #fff; }
-.calendar-day.selected { border-color: #ff6b35; background: #ff6b35; color: white; }
-.calendar-day.today { box-shadow: inset 0 0 0 2px #2dc653; }
+.calendar-day.selected { border-color: #1e3a5f; background: #1e3a5f; color: white; }
+.calendar-day.today { box-shadow: inset 0 0 0 2px #2e8b57; }
 .calendar-day .day-num { font-weight: 700; font-size: 13px; }
 .calendar-day .day-stats { font-size: 10px; color: #888; }
 .calendar-day.selected .day-stats { color: rgba(255,255,255,0.9); }
-.calendar-day.has-orders { background: #fff3e6; }
-.calendar-day.has-orders.selected { background: #ff6b35; }
-.calendar-day.busy { background: #ffeaa7; }
-.calendar-day.busy.selected { background: #ff6b35; }
-.calendar-day.full { background: #ffcccc; }
+.calendar-day.has-orders { background: #e9eef5; }
+.calendar-day.has-orders.selected { background: #1e3a5f; }
+.calendar-day.busy { background: #f3e2a9; }
+.calendar-day.busy.selected { background: #1e3a5f; }
+.calendar-day.full { background: #f3c9cd; }
 .calendar-day.full.selected { background: #dc3545; }
 .calendar-day .occ-bar { height: 3px; width: 100%; background: rgba(0,0,0,0.1); border-radius: 2px; overflow: hidden; }
-.calendar-day .occ-bar-fill { height: 100%; background: #ff6b35; transition: width 0.3s; }
+.calendar-day .occ-bar-fill { height: 100%; background: #1e3a5f; transition: width 0.3s; }
 .calendar-day.selected .occ-bar-fill { background: white; }
 .calendar-legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 12px; color: #666; padding: 8px 0; }
 .calendar-legend-item { display: flex; align-items: center; gap: 4px; }
 .calendar-legend-dot { width: 14px; height: 14px; border-radius: 4px; }
 .role-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; margin-right: 4px; }
-.role-badge.superadmin { background: #9c27b0; color: white; }
+.role-badge.superadmin { background: #6a4c93; color: white; }
 .role-badge.admin { background: #1976d2; color: white; }
-.role-badge.customer { background: #2dc653; color: white; }
+.role-badge.customer { background: #2e8b57; color: white; }
 .role-menu { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
-.role-btn { width: 100%; padding: 16px; background: #fff8f0; border: 2px solid #f0e0c8; border-radius: 10px; cursor: pointer; font-size: 17px; font-weight: 700; color: #555; font-family: inherit; transition: all 0.15s; text-align: left; }
-.role-btn:hover { background: #fff3e6; border-color: #ff6b35; color: #ff6b35; }
-.role-btn.selected { background: #ff6b35; border-color: #ff6b35; color: white; }
+.role-btn { width: 100%; padding: 16px; background: #f4f6f9; border: 2px solid #d8dfe9; border-radius: 10px; cursor: pointer; font-size: 17px; font-weight: 700; color: #555; font-family: inherit; transition: all 0.15s; text-align: left; }
+.role-btn:hover { background: #e9eef5; border-color: #1e3a5f; color: #1e3a5f; }
+.role-btn.selected { background: #1e3a5f; border-color: #1e3a5f; color: white; }
 .role-btn-admin { border-style: dashed; }
 /* 角色相關隱藏 */
 body.role-customer .admin-only { display: none !important; }
@@ -334,7 +334,7 @@ body.role-admin .superadmin-only { display: none !important; }
     <p style="font-size: 13px; color: #555; margin-bottom: 10px;" id="seatHint">請先選擇用餐時段。</p>
     <div class="legend">
       <div class="legend-item"><div class="legend-dot" style="background:white;"></div>可選（顯示座位編號）</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#ff6b35; border-color:#d84315;"></div>本次選取（顯示我的順序）</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#1e3a5f; border-color:#16304f;"></div>本次選取（顯示我的順序）</div>
       <div class="legend-item"><div class="legend-dot" style="background:#999;"></div>已被預訂（顯示訂單代號）</div>
     </div>
     <div class="seatmap-container" id="seatmapContainer">
@@ -382,10 +382,10 @@ body.role-admin .superadmin-only { display: none !important; }
     <div class="calendar" id="calendarWidget"></div>
     <div class="calendar-legend">
       <div class="calendar-legend-item"><div class="calendar-legend-dot" style="background:#f9f9f9;"></div>無訂單</div>
-      <div class="calendar-legend-item"><div class="calendar-legend-dot" style="background:#fff3e6;"></div>有訂單</div>
-      <div class="calendar-legend-item"><div class="calendar-legend-dot" style="background:#ffeaa7;"></div>過半 (>50%)</div>
-      <div class="calendar-legend-item"><div class="calendar-legend-dot" style="background:#ffcccc;"></div>幾乎滿 (>90%)</div>
-      <div class="calendar-legend-item"><div class="calendar-legend-dot" style="background:white; box-shadow: inset 0 0 0 2px #2dc653;"></div>今天</div>
+      <div class="calendar-legend-item"><div class="calendar-legend-dot" style="background:#e9eef5;"></div>有訂單</div>
+      <div class="calendar-legend-item"><div class="calendar-legend-dot" style="background:#f3e2a9;"></div>過半 (>50%)</div>
+      <div class="calendar-legend-item"><div class="calendar-legend-dot" style="background:#f3c9cd;"></div>幾乎滿 (>90%)</div>
+      <div class="calendar-legend-item"><div class="calendar-legend-dot" style="background:white; box-shadow: inset 0 0 0 2px #2e8b57;"></div>今天</div>
     </div>
   </div>
   <div class="section">
@@ -599,7 +599,7 @@ const SEAT_ONLY = [
   { code: 'D', name: '預約座位區', desc: '每人 30 元清潔費（老師免費）', price: 30 },
   { code: 'E', name: '預約座位區 + 冬瓜茶', desc: '每人 40 元（老師免費）', price: 40 }
 ];
-const COLORS = ['#ff6b35','#2dc653','#1976d2','#9c27b0','#e91e63','#00bcd4','#ff9800','#795548','#4caf50','#3f51b5','#ffc107','#009688','#673ab7','#f44336','#03a9f4'];
+const COLORS = ['#1e3a5f','#2e8b57','#1976d2','#6a4c93','#e91e63','#00bcd4','#ff9800','#795548','#4caf50','#3f51b5','#ffc107','#009688','#673ab7','#f44336','#03a9f4'];
 
 // ==================== 狀態 ====================
 let ORDERS = [];
@@ -823,7 +823,7 @@ function renderSeatmap() {
   const need = totalPeople(currentOrder);
   const slotLabel = TIME_SLOTS.find(s => s.id === currentOrder.timeSlot).label;
   hint.innerHTML = `📍 用餐時段：<strong>${slotLabel}</strong> · 需要座位：<strong>${need}</strong> · 已選：<strong>${currentOrder.selectedSeats.length}</strong>`;
-  hint.style.color = (need === currentOrder.selectedSeats.length && need > 0) ? '#2dc653' : '#555';
+  hint.style.color = (need === currentOrder.selectedSeats.length && need > 0) ? '#2e8b57' : '#555';
   const taken = getSeatsTakenByTimeSlot(currentOrder.timeSlot, editingOrderId, currentOrder.date);
   const previewCode = currentOrder.code || generateNextCode();
   TABLE_CONFIG.forEach(table => {
@@ -1166,10 +1166,10 @@ function renderOrdersList() {
   html += '</tbody></table></div>';
   const totalAmount = visible.reduce((sum, o) => sum + calcTotal(o), 0);
   const totalPpl = visible.reduce((sum, o) => sum + totalPeople(o), 0);
-  html += `<div style="margin-top:14px; padding:14px; background:#fff3e6; border-radius:8px; display:flex; gap:24px; flex-wrap:wrap;">
+  html += `<div style="margin-top:14px; padding:14px; background:#e9eef5; border-radius:8px; display:flex; gap:24px; flex-wrap:wrap;">
     <div>📊 訂單數：<strong>${visible.length}</strong></div>
     <div>👥 總人數：<strong>${totalPpl}</strong></div>
-    <div>💰 總金額：<strong style="color:#ff6b35;">$${totalAmount.toLocaleString()}</strong></div></div>`;
+    <div>💰 總金額：<strong style="color:#1e3a5f;">$${totalAmount.toLocaleString()}</strong></div></div>`;
   container.innerHTML = html;
   container.querySelectorAll('button[data-action]').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -1213,7 +1213,7 @@ function generateOrderPrintHTML(o) {
     <div class="info-row"><span class="label">總人數</span><span>${totalPeople(o)} 人</span></div>
     <table><thead><tr><th>項目</th><th>數量</th><th>單價</th><th>小計</th></tr></thead><tbody>${mealsHtml}</tbody></table>
     <div class="total-line">應付總額：$${calcTotal(o).toLocaleString()}</div>
-    <h3 style="margin-top:18px; color:#ff6b35;">📍 座位位置（${o.timeSlot}）</h3>
+    <h3 style="margin-top:18px; color:#1e3a5f;">📍 座位位置（${o.timeSlot}）</h3>
     <p style="font-size:13px; color:#666; margin-bottom:10px;">您的座位以 <strong style="color:${color};">${o.code}1, ${o.code}2 ...</strong> 標示</p>
     <div class="print-seatmap"></div></div>`;
 }
@@ -1231,10 +1231,10 @@ function printAll() {
     const slotAmount = slotOrders.reduce((sum, o) => sum + calcTotal(o), 0);
     const slotPpl = slotOrders.reduce((sum, o) => sum + totalPeople(o), 0);
     const taken = getSeatsTakenByTimeSlot(slot.id);
-    section.innerHTML = `<h3 style="font-size:18px; color:#fff; background:${slot.tag === 't1' ? '#ff6b35' : slot.tag === 't2' ? '#2dc653' : '#1976d2'}; padding:8px 14px; border-radius:6px; margin-bottom:10px;">🕐 用餐時段 ${slot.label}</h3>
-      <div style="font-size:13px; color:#555; margin-bottom:10px;">訂單 <strong>${slotOrders.length}</strong> 筆 · 總人數 <strong>${slotPpl}</strong> · 已用座位 <strong>${Object.keys(taken).length}/${TOTAL_SEATS}</strong> · 金額 <strong style="color:#ff6b35;">$${slotAmount.toLocaleString()}</strong></div>`;
+    section.innerHTML = `<h3 style="font-size:18px; color:#fff; background:${slot.tag === 't1' ? '#1e3a5f' : slot.tag === 't2' ? '#2e8b57' : '#1976d2'}; padding:8px 14px; border-radius:6px; margin-bottom:10px;">🕐 用餐時段 ${slot.label}</h3>
+      <div style="font-size:13px; color:#555; margin-bottom:10px;">訂單 <strong>${slotOrders.length}</strong> 筆 · 總人數 <strong>${slotPpl}</strong> · 已用座位 <strong>${Object.keys(taken).length}/${TOTAL_SEATS}</strong> · 金額 <strong style="color:#1e3a5f;">$${slotAmount.toLocaleString()}</strong></div>`;
     if (slotOrders.length > 0) {
-      const tableHtml = `<table style="width:100%; border-collapse:collapse; margin-bottom:12px;"><thead><tr style="background:#fff3e6;">
+      const tableHtml = `<table style="width:100%; border-collapse:collapse; margin-bottom:12px;"><thead><tr style="background:#e9eef5;">
         <th style="padding:6px; border:1px solid #ddd;">代號</th><th style="padding:6px; border:1px solid #ddd;">安親班</th>
         <th style="padding:6px; border:1px solid #ddd;">聯絡人</th><th style="padding:6px; border:1px solid #ddd;">手機</th>
         <th style="padding:6px; border:1px solid #ddd;">A</th><th style="padding:6px; border:1px solid #ddd;">B</th><th style="padding:6px; border:1px solid #ddd;">C</th>
@@ -1272,7 +1272,7 @@ function printAll() {
   const totalPpl = ORDERS.reduce((sum, o) => sum + totalPeople(o), 0);
   const totalLine = document.createElement('div');
   totalLine.className = 'total-line';
-  totalLine.style.borderTop = '2px solid #ff6b35'; totalLine.style.marginTop = '12px';
+  totalLine.style.borderTop = '2px solid #1e3a5f'; totalLine.style.marginTop = '12px';
   totalLine.innerHTML = `合計 ${ORDERS.length} 筆訂單 · 總人數 ${totalPpl} 人 · 總金額 $${totalAmount.toLocaleString()}`;
   card.appendChild(totalLine);
   printArea.appendChild(card);
@@ -1403,8 +1403,8 @@ function renderOverviewDetails() {
       <div class="stats">
         <div>訂單：<strong>${slotOrders.length}</strong> 筆</div>
         <div>已用座位：<strong>${usedCount}</strong> / ${TOTAL_SEATS}</div>
-        <div>剩餘：<strong style="color:${TOTAL_SEATS-usedCount > 10 ? '#2dc653' : '#dc3545'};">${TOTAL_SEATS-usedCount}</strong></div>
-        <div>金額：<strong style="color:#ff6b35;">$${slotAmount.toLocaleString()}</strong></div>
+        <div>剩餘：<strong style="color:${TOTAL_SEATS-usedCount > 10 ? '#2e8b57' : '#dc3545'};">${TOTAL_SEATS-usedCount}</strong></div>
+        <div>金額：<strong style="color:#1e3a5f;">$${slotAmount.toLocaleString()}</strong></div>
       </div>`;
     div.appendChild(buildSeatmapDOM(slot.id, date));
     if (slotOrders.length > 0) {
