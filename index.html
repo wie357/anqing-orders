@@ -177,6 +177,10 @@ header .cloud-status.offline { background: rgba(220, 53, 69, 0.4); }
 .date-mode-btn { padding: 8px 18px; border: 2px solid #d8dfe9; background: white; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; color: #555; font-family: inherit; transition: all 0.15s; }
 .date-mode-btn.active { background: #1e3a5f; color: white; border-color: #1e3a5f; }
 .date-mode-btn:hover:not(.active) { background: #e9eef5; }
+.weekday-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.weekday-row .wd-title { font-size: 13px; color: #555; font-weight: 600; }
+.wd-chip { display: inline-flex; align-items: center; gap: 4px; padding: 6px 10px; border: 1px solid #d8dfe9; border-radius: 8px; font-size: 14px; cursor: pointer; user-select: none; background: white; }
+.wd-chip input { cursor: pointer; }
 .date-picker-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .date-picker-row label { font-weight: 600; color: #555; font-size: 14px; }
 .date-picker-row input[type=date], .date-picker-row select { padding: 10px 12px; border: 2px solid #d8dfe9; border-radius: 8px; font-size: 15px; font-family: inherit; min-width: 200px; }
@@ -340,6 +344,16 @@ body.mode-range .summary-stat.day-stat { display: block; }
       <input type="date" id="orderDateStart" min="2026-07-01" max="2026-08-31">
       <label>結束日：</label>
       <input type="date" id="orderDateEnd" min="2026-07-01" max="2026-08-31">
+    </div>
+    <div class="weekday-row" id="weekdayRow" style="display:none;">
+      <span class="wd-title">指定星期：</span>
+      <label class="wd-chip"><input type="checkbox" class="wd-chk" value="1" checked> 一</label>
+      <label class="wd-chip"><input type="checkbox" class="wd-chk" value="2" checked> 二</label>
+      <label class="wd-chip"><input type="checkbox" class="wd-chk" value="3" checked> 三</label>
+      <label class="wd-chip"><input type="checkbox" class="wd-chk" value="4" checked> 四</label>
+      <label class="wd-chip"><input type="checkbox" class="wd-chk" value="5" checked> 五</label>
+      <label class="wd-chip"><input type="checkbox" class="wd-chk" value="6"> 六</label>
+      <label class="wd-chip"><input type="checkbox" class="wd-chk" value="0"> 日</label>
       <span class="date-display" id="rangeCountDisplay"></span>
     </div>
     <p style="font-size:12px; color:#888; margin-top:6px;">可選範圍：2026/7/1 - 2026/8/31。連續多日會以「總次數 = 天數」計算金額，座位由現場安排。</p>
@@ -696,10 +710,35 @@ function daysBetween(start, end) {
   const diff = Math.round((b - a) / 86400000);
   return diff < 0 ? 0 : diff + 1;
 }
-function orderDateCount(o) { return (o && o.dateCount && o.dateCount > 0) ? o.dateCount : 1; }
+function matchingDates(start, end, weekdays) {
+  // weekdays: 陣列, JS getDay() 0=日..6=六；回傳區間內符合星期的日期字串
+  if (!start || !end || end < start) return [];
+  const wd = (weekdays && weekdays.length) ? weekdays.map(Number) : [0,1,2,3,4,5,6];
+  const [y1,m1,d1] = start.split('-').map(Number);
+  const [y2,m2,d2] = end.split('-').map(Number);
+  const cur = new Date(y1, m1-1, d1), last = new Date(y2, m2-1, d2);
+  const out = [];
+  while (cur <= last) {
+    if (wd.includes(cur.getDay())) {
+      out.push(`${cur.getFullYear()}-${String(cur.getMonth()+1).padStart(2,'0')}-${String(cur.getDate()).padStart(2,'0')}`);
+    }
+    cur.setDate(cur.getDate()+1);
+  }
+  return out;
+}
+const WD_NAMES = ['日','一','二','三','四','五','六'];
+function weekdaysLabel(wd) {
+  if (!wd || !wd.length || wd.length === 7) return '每天';
+  return '週' + wd.slice().sort((a,b)=>((a===0?7:a)-(b===0?7:b))).map(d=>WD_NAMES[d]).join('、');
+}
+function orderDateCount(o) {
+  if (o && o.dateCount && o.dateCount > 0) return o.dateCount;
+  return (o && o.dateMode === 'range') ? 0 : 1;
+}
 function orderDateLabel(o) {
   if (o && o.dateMode === 'range' && o.dateEnd && o.dateEnd !== o.date) {
-    return `${o.date} ~ ${o.dateEnd}（共 ${orderDateCount(o)} 天）`;
+    const wd = (o.weekdays && o.weekdays.length && o.weekdays.length < 7) ? ' ' + weekdaysLabel(o.weekdays) : '';
+    return `${o.date} ~ ${o.dateEnd}${wd}（共 ${orderDateCount(o)} 天）`;
   }
   return o ? (o.date || '—') : '—';
 }
@@ -733,7 +772,7 @@ let useFirebase = false;
 function newOrderTemplate() {
   return {
     id: null, code: '', date: getDefaultDate(),
-    dateMode: 'single', dateEnd: '', dateCount: 1,
+    dateMode: 'single', dateEnd: '', dateCount: 1, weekdays: [1,2,3,4,5], dates: [],
     schoolName: '', contact: '', phone: '',
     timeSlot: '',
     meals: { A: 0, B: 0, C: 0 },
@@ -1049,6 +1088,7 @@ function applyDateMode() {
   const isRange = currentOrder.dateMode === 'range';
   document.getElementById('singleDateRow').style.display = isRange ? 'none' : 'flex';
   document.getElementById('rangeDateRow').style.display = isRange ? 'flex' : 'none';
+  document.getElementById('weekdayRow').style.display = isRange ? 'flex' : 'none';
   document.getElementById('dateModeSingle').classList.toggle('active', !isRange);
   document.getElementById('dateModeRange').classList.toggle('active', isRange);
   // 連續多日：停用自選座位（由現場安排）
@@ -1057,10 +1097,20 @@ function applyDateMode() {
 }
 function updateRangeCount() {
   const start = currentOrder.date, end = currentOrder.dateEnd;
-  const n = (start && end) ? daysBetween(start, end) : 0;
-  currentOrder.dateCount = n > 0 ? n : 1;
+  const wd = currentOrder.weekdays || [1,2,3,4,5];
+  const dates = matchingDates(start, end, wd);
+  currentOrder.dates = dates;
+  currentOrder.dateCount = dates.length > 0 ? dates.length : 0;
   const disp = document.getElementById('rangeCountDisplay');
-  if (disp) disp.textContent = n > 0 ? `共 ${n} 天（總次數 ${n}）` : '結束日需不早於起始日';
+  if (disp) {
+    if (!end || end < start) disp.textContent = '結束日需不早於起始日';
+    else if (dates.length === 0) disp.textContent = '此區間內沒有符合所選星期的日期';
+    else disp.textContent = `${weekdaysLabel(wd)} · 共 ${dates.length} 天（總次數 ${dates.length}）`;
+  }
+}
+function readWeekdayChecks() {
+  const chks = [...document.querySelectorAll('.wd-chk:checked')].map(c => Number(c.value));
+  currentOrder.weekdays = chks;
 }
 function renderDatePicker() {
   const inp = document.getElementById('orderDate');
@@ -1103,6 +1153,17 @@ function renderDatePicker() {
     sInp.onchange = onRangeChange;
     eInp.onchange = onRangeChange;
   }
+  // 星期勾選：依 currentOrder.weekdays 同步，並綁定變更
+  const wdSet = currentOrder.weekdays || [1,2,3,4,5];
+  document.querySelectorAll('.wd-chk').forEach(c => {
+    c.checked = wdSet.includes(Number(c.value));
+    c.onchange = () => {
+      readWeekdayChecks();
+      if (!currentOrder.weekdays.length) { showToast('請至少勾選一個星期', 'error'); c.checked = true; readWeekdayChecks(); }
+      updateRangeCount();
+      updateSummary();
+    };
+  });
   // 模式切換按鈕
   const btnS = document.getElementById('dateModeSingle');
   const btnR = document.getElementById('dateModeRange');
@@ -1139,6 +1200,8 @@ function validateOrder() {
   if (isRange) {
     if (!currentOrder.dateEnd) return '請選擇結束日';
     if (currentOrder.dateEnd < currentOrder.date) return '結束日不可早於起始日';
+    if (!currentOrder.weekdays || currentOrder.weekdays.length === 0) return '請至少勾選一個星期';
+    if (orderDateCount(currentOrder) === 0 || (currentOrder.dates && currentOrder.dates.length === 0)) return '此區間內沒有符合所選星期的日期';
   }
   const need = totalPeople(currentOrder);
   if (need === 0) return '請至少訂購一份套餐或座位';
@@ -1176,7 +1239,8 @@ function notifyLINE(action, orderData, extra = {}) {
   let dateLabel = orderData.date || '';
   if (dateLabel) {
     if (orderData.dateMode === 'range' && orderData.dateEnd && orderData.dateEnd !== orderData.date) {
-      dateLabel = `${fmtD(orderData.date)} ~ ${fmtD(orderData.dateEnd)}（共 ${orderData.dateCount || daysBetween(orderData.date, orderData.dateEnd)} 天）`;
+      const wdTxt = (orderData.weekdays && orderData.weekdays.length && orderData.weekdays.length < 7) ? ' ' + weekdaysLabel(orderData.weekdays) : '';
+      dateLabel = `${fmtD(orderData.date)} ~ ${fmtD(orderData.dateEnd)}${wdTxt}（共 ${orderData.dateCount || 0} 天）`;
     } else {
       dateLabel = fmtD(dateLabel);
     }
@@ -1228,6 +1292,8 @@ async function saveCurrentOrder() {
     dateMode: currentOrder.dateMode || 'single',
     dateEnd: currentOrder.dateMode === 'range' ? (currentOrder.dateEnd || currentOrder.date) : '',
     dateCount: currentOrder.dateMode === 'range' ? orderDateCount(currentOrder) : 1,
+    weekdays: currentOrder.dateMode === 'range' ? (currentOrder.weekdays || []) : [],
+    dates: currentOrder.dateMode === 'range' ? (currentOrder.dates || []) : [],
     timeSlot: currentOrder.timeSlot,
     meals: currentOrder.meals, seats: currentOrder.seats,
     selectedSeats: currentOrder.selectedSeats,
@@ -1470,9 +1536,9 @@ function printAll() {
 function exportCSV() {
   const visible = getVisibleOrders();
   if (visible.length === 0) { showToast('沒有訂單可匯出', 'error'); return; }
-  const headers = ['代號','訂單編號','建立時間','日期','結束日','總次數','時段','安親班','聯絡人','手機','A套餐','B套餐','C套餐','D學生','D老師','E學生','E老師','總人數','金額','座位編號'];
+  const headers = ['代號','訂單編號','建立時間','日期','結束日','指定星期','總次數','時段','安親班','聯絡人','手機','A套餐','B套餐','C套餐','D學生','D老師','E學生','E老師','總人數','金額','座位編號'];
   const sorted = [...visible].sort((a, b) => (a.date||'').localeCompare(b.date||'') || a.timeSlot.localeCompare(b.timeSlot) || (a.code||'').localeCompare(b.code||''));
-  const rows = sorted.map(o => [o.code, o.id, new Date(o.createdAt).toLocaleString('zh-TW'), o.date || '', (o.dateMode==='range'?(o.dateEnd||''):''), orderDateCount(o), o.timeSlot, o.schoolName, o.contact, o.phone, o.meals.A, o.meals.B, o.meals.C, o.seats.D_students, o.seats.D_teachers, o.seats.E_students, o.seats.E_teachers, totalPeople(o), calcTotal(o), o.selectedSeats.join(' ')]);
+  const rows = sorted.map(o => [o.code, o.id, new Date(o.createdAt).toLocaleString('zh-TW'), o.date || '', (o.dateMode==='range'?(o.dateEnd||''):''), (o.dateMode==='range'?weekdaysLabel(o.weekdays):''), orderDateCount(o), o.timeSlot, o.schoolName, o.contact, o.phone, o.meals.A, o.meals.B, o.meals.C, o.seats.D_students, o.seats.D_teachers, o.seats.E_students, o.seats.E_teachers, totalPeople(o), calcTotal(o), o.selectedSeats.join(' ')]);
   const csv = '﻿' + [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
