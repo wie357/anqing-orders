@@ -173,6 +173,10 @@ header .cloud-status.offline { background: rgba(220, 53, 69, 0.4); }
 .user-info { display: inline-flex; align-items: center; gap: 8px; margin-left: 10px; font-size: 13px; color: white; }
 .user-info .logout-btn { background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.4); padding: 4px 10px; border-radius: 8px; cursor: pointer; font-size: 12px; font-family: inherit; }
 .user-info .logout-btn:hover { background: rgba(255,255,255,0.3); }
+.date-mode-tabs { display: flex; gap: 6px; margin-bottom: 14px; }
+.date-mode-btn { padding: 8px 18px; border: 2px solid #d8dfe9; background: white; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; color: #555; font-family: inherit; transition: all 0.15s; }
+.date-mode-btn.active { background: #1e3a5f; color: white; border-color: #1e3a5f; }
+.date-mode-btn:hover:not(.active) { background: #e9eef5; }
 .date-picker-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .date-picker-row label { font-weight: 600; color: #555; font-size: 14px; }
 .date-picker-row input[type=date], .date-picker-row select { padding: 10px 12px; border: 2px solid #d8dfe9; border-radius: 8px; font-size: 15px; font-family: inherit; min-width: 200px; }
@@ -226,6 +230,11 @@ body.role-admin .superadmin-only { display: none !important; }
 body.identity-anqin .seatmap-only { display: none !important; }
 body.identity-anqin .summary-stat.seat-stat { display: none !important; }
 body.identity-anqin .tab-overview { display: none !important; }
+/* 連續多日模式：停用自選座位 */
+body.mode-range .seatmap-only { display: none !important; }
+body.mode-range .summary-stat.seat-stat { display: none !important; }
+.summary-stat.day-stat { display: none; }
+body.mode-range .summary-stat.day-stat { display: block; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 @media print {
@@ -317,12 +326,23 @@ body.identity-anqin .tab-overview { display: none !important; }
 
   <div class="section">
     <h2>② 用餐日期</h2>
-    <div class="date-picker-row">
+    <div class="date-mode-tabs">
+      <button type="button" class="date-mode-btn active" id="dateModeSingle">單日</button>
+      <button type="button" class="date-mode-btn" id="dateModeRange">連續多日</button>
+    </div>
+    <div class="date-picker-row" id="singleDateRow">
       <label>選擇日期：</label>
       <input type="date" id="orderDate" min="2026-07-01" max="2026-08-31">
       <span class="date-display" id="orderDateDisplay"></span>
     </div>
-    <p style="font-size:12px; color:#888; margin-top:6px;">可選範圍：2026/7/1 - 2026/8/31</p>
+    <div class="date-picker-row" id="rangeDateRow" style="display:none;">
+      <label>起始日：</label>
+      <input type="date" id="orderDateStart" min="2026-07-01" max="2026-08-31">
+      <label>結束日：</label>
+      <input type="date" id="orderDateEnd" min="2026-07-01" max="2026-08-31">
+      <span class="date-display" id="rangeCountDisplay"></span>
+    </div>
+    <p style="font-size:12px; color:#888; margin-top:6px;">可選範圍：2026/7/1 - 2026/8/31。連續多日會以「總次數 = 天數」計算金額，座位由現場安排。</p>
   </div>
 
   <div class="section">
@@ -359,6 +379,7 @@ body.identity-anqin .tab-overview { display: none !important; }
     <div class="summary-info">
       <div class="summary-stat"><div class="label">總人數</div><div class="value" id="totalPeople">0</div></div>
       <div class="summary-stat seat-stat"><div class="label">已選座位</div><div class="value" id="selectedSeats">0</div></div>
+      <div class="summary-stat day-stat"><div class="label">總次數(天)</div><div class="value" id="dayCount">1</div></div>
       <div class="summary-stat total"><div class="label">應付總額</div><div class="value">$<span id="totalAmount">0</span></div></div>
     </div>
     <div class="summary-actions">
@@ -667,6 +688,21 @@ function getDefaultDate() {
   return DATE_RANGE.start;
 }
 function isValidDate(d) { return d >= DATE_RANGE.start && d <= DATE_RANGE.end; }
+function daysBetween(start, end) {
+  if (!start || !end) return 0;
+  const [y1,m1,d1] = start.split('-').map(Number);
+  const [y2,m2,d2] = end.split('-').map(Number);
+  const a = new Date(y1, m1-1, d1), b = new Date(y2, m2-1, d2);
+  const diff = Math.round((b - a) / 86400000);
+  return diff < 0 ? 0 : diff + 1;
+}
+function orderDateCount(o) { return (o && o.dateCount && o.dateCount > 0) ? o.dateCount : 1; }
+function orderDateLabel(o) {
+  if (o && o.dateMode === 'range' && o.dateEnd && o.dateEnd !== o.date) {
+    return `${o.date} ~ ${o.dateEnd}（共 ${orderDateCount(o)} 天）`;
+  }
+  return o ? (o.date || '—') : '—';
+}
 function formatDateChinese(dateStr) {
   if (!dateStr) return '';
   const [y, m, d] = dateStr.split('-').map(Number);
@@ -697,6 +733,7 @@ let useFirebase = false;
 function newOrderTemplate() {
   return {
     id: null, code: '', date: getDefaultDate(),
+    dateMode: 'single', dateEnd: '', dateCount: 1,
     schoolName: '', contact: '', phone: '',
     timeSlot: '',
     meals: { A: 0, B: 0, C: 0 },
@@ -803,8 +840,11 @@ function getOrderColor(code) {
 }
 
 // ==================== 計算 ====================
-function calcTotal(o) {
+function calcTotalPerDay(o) {
   return o.meals.A * 120 + o.meals.B * 120 + o.meals.C * 120 + o.seats.D_students * 30 + o.seats.E_students * 40;
+}
+function calcTotal(o) {
+  return calcTotalPerDay(o) * orderDateCount(o);
 }
 function totalPeople(o) {
   return o.meals.A + o.meals.B + o.meals.C + o.seats.D_students + o.seats.D_teachers + o.seats.E_students + o.seats.E_teachers;
@@ -1005,6 +1045,23 @@ function buildSeatmapDOM(timeSlot, dateFilter) {
   return wrap;
 }
 
+function applyDateMode() {
+  const isRange = currentOrder.dateMode === 'range';
+  document.getElementById('singleDateRow').style.display = isRange ? 'none' : 'flex';
+  document.getElementById('rangeDateRow').style.display = isRange ? 'flex' : 'none';
+  document.getElementById('dateModeSingle').classList.toggle('active', !isRange);
+  document.getElementById('dateModeRange').classList.toggle('active', isRange);
+  // 連續多日：停用自選座位（由現場安排）
+  document.body.classList.toggle('mode-range', isRange);
+  if (isRange) currentOrder.selectedSeats = [];
+}
+function updateRangeCount() {
+  const start = currentOrder.date, end = currentOrder.dateEnd;
+  const n = (start && end) ? daysBetween(start, end) : 0;
+  currentOrder.dateCount = n > 0 ? n : 1;
+  const disp = document.getElementById('rangeCountDisplay');
+  if (disp) disp.textContent = n > 0 ? `共 ${n} 天（總次數 ${n}）` : '結束日需不早於起始日';
+}
 function renderDatePicker() {
   const inp = document.getElementById('orderDate');
   const disp = document.getElementById('orderDateDisplay');
@@ -1025,10 +1082,43 @@ function renderDatePicker() {
       updateSummary();
     };
   }
+  // 連續多日：起訖日
+  const sInp = document.getElementById('orderDateStart');
+  const eInp = document.getElementById('orderDateEnd');
+  if (sInp && eInp) {
+    sInp.value = currentOrder.date || getDefaultDate();
+    eInp.value = currentOrder.dateEnd || currentOrder.date || getDefaultDate();
+    const onRangeChange = () => {
+      if (!isValidDate(sInp.value) || !isValidDate(eInp.value)) {
+        showToast('日期需在 2026/7/1 - 2026/8/31', 'error'); return;
+      }
+      if (eInp.value < sInp.value) { showToast('結束日不可早於起始日', 'error'); eInp.value = sInp.value; }
+      currentOrder.date = sInp.value;
+      currentOrder.dateEnd = eInp.value;
+      currentOrder.selectedSeats = [];
+      updateRangeCount();
+      renderTimeSlots();
+      updateSummary();
+    };
+    sInp.onchange = onRangeChange;
+    eInp.onchange = onRangeChange;
+  }
+  // 模式切換按鈕
+  const btnS = document.getElementById('dateModeSingle');
+  const btnR = document.getElementById('dateModeRange');
+  if (btnS) btnS.onclick = () => { currentOrder.dateMode = 'single'; currentOrder.dateCount = 1; currentOrder.dateEnd = ''; applyDateMode(); renderSeatmap(); updateSummary(); };
+  if (btnR) btnR.onclick = () => {
+    currentOrder.dateMode = 'range';
+    if (!currentOrder.dateEnd) currentOrder.dateEnd = currentOrder.date;
+    applyDateMode(); updateRangeCount(); updateSummary();
+  };
+  applyDateMode();
+  updateRangeCount();
 }
 function updateSummary() {
   document.getElementById('totalPeople').textContent = totalPeople(currentOrder);
   document.getElementById('selectedSeats').textContent = currentOrder.selectedSeats.length;
+  const dc = document.getElementById('dayCount'); if (dc) dc.textContent = orderDateCount(currentOrder);
   document.getElementById('totalAmount').textContent = calcTotal(currentOrder).toLocaleString();
   currentOrder.schoolName = document.getElementById('schoolName').value.trim();
   currentOrder.contact = document.getElementById('contact').value.trim();
@@ -1045,10 +1135,15 @@ function validateOrder() {
   if (!currentOrder.contact) return '請輸入聯絡人';
   if (!currentOrder.phone) return '請輸入聯絡手機';
   if (!currentOrder.timeSlot) return '請選擇用餐時段';
+  const isRange = currentOrder.dateMode === 'range';
+  if (isRange) {
+    if (!currentOrder.dateEnd) return '請選擇結束日';
+    if (currentOrder.dateEnd < currentOrder.date) return '結束日不可早於起始日';
+  }
   const need = totalPeople(currentOrder);
   if (need === 0) return '請至少訂購一份套餐或座位';
-  // 安親團體不選座位（由現場安排），跳過座位數檢查
-  const noSeatSelect = CURRENT_USER && CURRENT_USER.username === 'anqin';
+  // 安親團體 或 連續多日 不選座位（由現場安排），跳過座位數檢查
+  const noSeatSelect = (CURRENT_USER && CURRENT_USER.username === 'anqin') || isRange;
   if (!noSeatSelect && currentOrder.selectedSeats.length !== need) return `已選座位 ${currentOrder.selectedSeats.length} 個，需要 ${need} 個，請對應人數選滿`;
   return null;
 }
@@ -1058,8 +1153,9 @@ const MAKE_WEBHOOK_URL = 'https://hook.eu1.make.com/p4pzicwbu2ysx89z6owom8q5wrsn
 function notifyLINE(action, orderData, extra = {}) {
   const m = orderData.meals || { A: 0, B: 0, C: 0 };
   const s = orderData.seats || { D_students: 0, D_teachers: 0, E_students: 0, E_teachers: 0 };
+  const dayCount = (orderData.dateMode === 'range' && orderData.dateCount > 0) ? orderData.dateCount : 1;
   const totalPeople = (m.A||0) + (m.B||0) + (m.C||0) + (s.D_students||0) + (s.D_teachers||0) + (s.E_students||0) + (s.E_teachers||0);
-  const totalAmount = (m.A||0)*120 + (m.B||0)*120 + (m.C||0)*120 + (s.D_students||0)*30 + (s.E_students||0)*40;
+  const totalAmount = ((m.A||0)*120 + (m.B||0)*120 + (m.C||0)*120 + (s.D_students||0)*30 + (s.E_students||0)*40) * dayCount;
   // 套餐摘要（只顯示有點的）
   const mealsList = [];
   if (m.A) mealsList.push(`A起司雞肉捲×${m.A}`);
@@ -1076,11 +1172,14 @@ function notifyLINE(action, orderData, extra = {}) {
   // 座位號碼字串
   const seatsStr = (orderData.selectedSeats || []).join('、');
   // 用餐日期 + 星期
+  function fmtD(ds){ const [y,mo,d]=ds.split('-').map(Number); const wd=['日','一','二','三','四','五','六'][new Date(y,mo-1,d).getDay()]; return `${y}/${mo}/${d} (週${wd})`; }
   let dateLabel = orderData.date || '';
   if (dateLabel) {
-    const [y,mo,d] = dateLabel.split('-').map(Number);
-    const wd = ['日','一','二','三','四','五','六'][new Date(y, mo-1, d).getDay()];
-    dateLabel = `${y}/${mo}/${d} (週${wd})`;
+    if (orderData.dateMode === 'range' && orderData.dateEnd && orderData.dateEnd !== orderData.date) {
+      dateLabel = `${fmtD(orderData.date)} ~ ${fmtD(orderData.dateEnd)}（共 ${orderData.dateCount || daysBetween(orderData.date, orderData.dateEnd)} 天）`;
+    } else {
+      dateLabel = fmtD(dateLabel);
+    }
   }
   // 操作時間
   const now = new Date();
@@ -1126,6 +1225,9 @@ async function saveCurrentOrder() {
     code: currentOrder.code || generateNextCode(),
     schoolName: currentOrder.schoolName, contact: currentOrder.contact, phone: currentOrder.phone,
     date: currentOrder.date || getDefaultDate(),
+    dateMode: currentOrder.dateMode || 'single',
+    dateEnd: currentOrder.dateMode === 'range' ? (currentOrder.dateEnd || currentOrder.date) : '',
+    dateCount: currentOrder.dateMode === 'range' ? orderDateCount(currentOrder) : 1,
     timeSlot: currentOrder.timeSlot,
     meals: currentOrder.meals, seats: currentOrder.seats,
     selectedSeats: currentOrder.selectedSeats,
@@ -1234,7 +1336,7 @@ function renderOrdersList() {
     const color = getOrderColor(o.code);
     html += `<tr>
       <td><span class="order-code-tag" style="background:${color};">${o.code || '?'}</span></td>
-      <td style="font-size:12px; white-space:nowrap;">${o.date || '—'}</td>
+      <td style="font-size:12px; white-space:nowrap;">${orderDateLabel(o)}</td>
       <td><span class="time-tag ${slot ? slot.tag : ''}">${o.timeSlot}</span></td>
       <td><strong>${escapeHtml(o.schoolName)}</strong></td>
       <td>${escapeHtml(o.contact)}</td><td>${escapeHtml(o.phone)}</td>
@@ -1368,9 +1470,9 @@ function printAll() {
 function exportCSV() {
   const visible = getVisibleOrders();
   if (visible.length === 0) { showToast('沒有訂單可匯出', 'error'); return; }
-  const headers = ['代號','訂單編號','建立時間','日期','時段','安親班','聯絡人','手機','A套餐','B套餐','C套餐','D學生','D老師','E學生','E老師','總人數','金額','座位編號'];
+  const headers = ['代號','訂單編號','建立時間','日期','結束日','總次數','時段','安親班','聯絡人','手機','A套餐','B套餐','C套餐','D學生','D老師','E學生','E老師','總人數','金額','座位編號'];
   const sorted = [...visible].sort((a, b) => (a.date||'').localeCompare(b.date||'') || a.timeSlot.localeCompare(b.timeSlot) || (a.code||'').localeCompare(b.code||''));
-  const rows = sorted.map(o => [o.code, o.id, new Date(o.createdAt).toLocaleString('zh-TW'), o.date || '', o.timeSlot, o.schoolName, o.contact, o.phone, o.meals.A, o.meals.B, o.meals.C, o.seats.D_students, o.seats.D_teachers, o.seats.E_students, o.seats.E_teachers, totalPeople(o), calcTotal(o), o.selectedSeats.join(' ')]);
+  const rows = sorted.map(o => [o.code, o.id, new Date(o.createdAt).toLocaleString('zh-TW'), o.date || '', (o.dateMode==='range'?(o.dateEnd||''):''), orderDateCount(o), o.timeSlot, o.schoolName, o.contact, o.phone, o.meals.A, o.meals.B, o.meals.C, o.seats.D_students, o.seats.D_teachers, o.seats.E_students, o.seats.E_teachers, totalPeople(o), calcTotal(o), o.selectedSeats.join(' ')]);
   const csv = '﻿' + [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
