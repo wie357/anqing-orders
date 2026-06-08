@@ -158,8 +158,10 @@ header .cloud-status.offline { background: rgba(220, 53, 69, 0.4); }
 .login-card h2 { color: #1e3a5f; text-align: center; margin-bottom: 6px; font-size: 22px; }
 .login-title-row { display: flex; align-items: center; justify-content: center; gap: 0; }
 .login-title-row h2 { margin-bottom: 6px; }
-.hidden-zone { display: inline-flex; height: 30px; width: 56px; margin-left: 4px; }
-.hidden-zone .hz-half { width: 28px; height: 100%; cursor: default; background: transparent; -webkit-tap-highlight-color: transparent; }
+.hidden-zone { display: inline-flex; height: 30px; width: 30px; }
+.hidden-zone.hz-left { margin-right: 4px; }
+.hidden-zone.hz-right { margin-left: 4px; }
+.hidden-zone .hz-half { width: 100%; height: 100%; cursor: default; background: transparent; -webkit-tap-highlight-color: transparent; }
 .login-card .subtitle { text-align: center; color: #888; font-size: 13px; margin-bottom: 24px; }
 .lc-fg { margin-bottom: 14px; display: flex; flex-direction: column; }
 .lc-fg label { font-weight: 600; margin-bottom: 6px; font-size: 14px; color: #555; }
@@ -220,6 +222,10 @@ header .cloud-status.offline { background: rgba(220, 53, 69, 0.4); }
 body.role-customer .admin-only { display: none !important; }
 body.role-customer .superadmin-only { display: none !important; }
 body.role-admin .superadmin-only { display: none !important; }
+/* 安親團體：只能訂餐，不能選座位 */
+body.identity-anqin .seat-section { display: none !important; }
+.summary-stat.seat-stat { }
+body.identity-anqin .summary-stat.seat-stat { display: none !important; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 @media print {
@@ -259,7 +265,7 @@ body.role-admin .superadmin-only { display: none !important; }
 <div class="login-overlay show" id="loginOverlay">
   <div class="login-card">
     <div class="login-title-row">
-      <h2>🍱 訂餐系統</h2><span class="hidden-zone"><span class="hz-half" data-identity="counter" title=""></span><span class="hz-half" data-identity="store" title=""></span></span>
+      <span class="hidden-zone hz-left"><span class="hz-half" data-identity="store" title=""></span></span><h2>🍱 訂餐系統</h2><span class="hidden-zone hz-right"><span class="hz-half" data-identity="counter" title=""></span></span>
     </div>
     <div class="subtitle">115年7月8月安親班團體訂餐 · 請選擇身分</div>
     <div class="role-menu">
@@ -329,13 +335,13 @@ body.role-admin .superadmin-only { display: none !important; }
     <div class="meal-grid" id="meals"></div>
   </div>
 
-  <div class="section">
+  <div class="section seat-section">
     <h2>⑤ 預約座位區（不另購套餐者）</h2>
     <p style="font-size: 13px; color: #888; margin-bottom: 12px;">老師陪同入場免清潔費，但仍需佔用座位。</p>
     <div class="meal-grid" id="seatOnlyOptions"></div>
   </div>
 
-  <div class="section">
+  <div class="section seat-section">
     <h2>⑥ 座位選擇</h2>
     <p style="font-size: 13px; color: #555; margin-bottom: 10px;" id="seatHint">請先選擇用餐時段。</p>
     <div class="legend">
@@ -352,7 +358,7 @@ body.role-admin .superadmin-only { display: none !important; }
   <div class="summary-bar no-print">
     <div class="summary-info">
       <div class="summary-stat"><div class="label">總人數</div><div class="value" id="totalPeople">0</div></div>
-      <div class="summary-stat"><div class="label">已選座位</div><div class="value" id="selectedSeats">0</div></div>
+      <div class="summary-stat seat-stat"><div class="label">已選座位</div><div class="value" id="selectedSeats">0</div></div>
       <div class="summary-stat total"><div class="label">應付總額</div><div class="value">$<span id="totalAmount">0</span></div></div>
     </div>
     <div class="summary-actions">
@@ -447,7 +453,7 @@ const FIREBASE_CONFIG = {
 // ==================== 身分選單 / 角色 ====================
 const IDENTITIES = {
   counter: { name: '櫃台',     role: 'customer' },
-  store:   { name: '販賣部',   role: 'customer' },
+  store:   { name: '出餐部',   role: 'customer' },
   anqin:   { name: '安親團體', role: 'customer' },
   wei:     { name: '管理人wei', role: 'superadmin', password: '23709556' }
 };
@@ -462,7 +468,11 @@ function canSeeAllOrders() { return isAdmin(); }
 
 function applyRoleClass() {
   document.body.classList.remove('role-customer','role-admin','role-superadmin');
-  if (CURRENT_USER) document.body.classList.add('role-' + CURRENT_USER.role);
+  document.body.classList.remove('identity-counter','identity-store','identity-anqin','identity-wei');
+  if (CURRENT_USER) {
+    document.body.classList.add('role-' + CURRENT_USER.role);
+    document.body.classList.add('identity-' + CURRENT_USER.username);
+  }
 }
 
 function loadSession() {
@@ -578,7 +588,7 @@ function bindAuthHandlers() {
       }
     });
   });
-  // 隱藏入口：標題右側 左半=櫃台 右半=販賣部
+  // 隱藏入口：標題左側=出餐部、右側=櫃台
   document.querySelectorAll('.hidden-zone .hz-half').forEach(z => {
     z.addEventListener('click', () => {
       const key = z.getAttribute('data-identity');
@@ -1037,7 +1047,9 @@ function validateOrder() {
   if (!currentOrder.timeSlot) return '請選擇用餐時段';
   const need = totalPeople(currentOrder);
   if (need === 0) return '請至少訂購一份套餐或座位';
-  if (currentOrder.selectedSeats.length !== need) return `已選座位 ${currentOrder.selectedSeats.length} 個，需要 ${need} 個，請對應人數選滿`;
+  // 安親團體不選座位（由現場安排），跳過座位數檢查
+  const noSeatSelect = CURRENT_USER && CURRENT_USER.username === 'anqin';
+  if (!noSeatSelect && currentOrder.selectedSeats.length !== need) return `已選座位 ${currentOrder.selectedSeats.length} 個，需要 ${need} 個，請對應人數選滿`;
   return null;
 }
 
