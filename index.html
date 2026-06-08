@@ -222,9 +222,10 @@ header .cloud-status.offline { background: rgba(220, 53, 69, 0.4); }
 body.role-customer .admin-only { display: none !important; }
 body.role-customer .superadmin-only { display: none !important; }
 body.role-admin .superadmin-only { display: none !important; }
-/* 安親團體：可預約座位區(⑤)，但不能自選座位(⑥) */
+/* 安親團體：可預約座位區(⑤)，但不能自選座位(⑥)，也看不到座位總覽 */
 body.identity-anqin .seatmap-only { display: none !important; }
 body.identity-anqin .summary-stat.seat-stat { display: none !important; }
+body.identity-anqin .tab-overview { display: none !important; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 @media print {
@@ -298,7 +299,7 @@ body.identity-anqin .summary-stat.seat-stat { display: none !important; }
 <div class="tabs no-print">
   <button class="tab-btn active" data-tab="new">📝 新增訂單</button>
   <button class="tab-btn" data-tab="manage">📋 訂單管理</button>
-  <button class="tab-btn" data-tab="overview">🪑 座位總覽</button>
+  <button class="tab-btn tab-overview" data-tab="overview">🪑 座位總覽</button>
   <button class="tab-btn superadmin-only" data-tab="logs">🕐 登入紀錄</button>
 </div>
 
