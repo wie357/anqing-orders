@@ -222,9 +222,8 @@ header .cloud-status.offline { background: rgba(220, 53, 69, 0.4); }
 body.role-customer .admin-only { display: none !important; }
 body.role-customer .superadmin-only { display: none !important; }
 body.role-admin .superadmin-only { display: none !important; }
-/* 安親團體：只能訂餐，不能選座位 */
-body.identity-anqin .seat-section { display: none !important; }
-.summary-stat.seat-stat { }
+/* 安親團體：可預約座位區(⑤)，但不能自選座位(⑥) */
+body.identity-anqin .seatmap-only { display: none !important; }
 body.identity-anqin .summary-stat.seat-stat { display: none !important; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
@@ -335,13 +334,13 @@ body.identity-anqin .summary-stat.seat-stat { display: none !important; }
     <div class="meal-grid" id="meals"></div>
   </div>
 
-  <div class="section seat-section">
+  <div class="section">
     <h2>⑤ 預約座位區（不另購套餐者）</h2>
     <p style="font-size: 13px; color: #888; margin-bottom: 12px;">老師陪同入場免清潔費，但仍需佔用座位。</p>
     <div class="meal-grid" id="seatOnlyOptions"></div>
   </div>
 
-  <div class="section seat-section">
+  <div class="section seatmap-only">
     <h2>⑥ 座位選擇</h2>
     <p style="font-size: 13px; color: #555; margin-bottom: 10px;" id="seatHint">請先選擇用餐時段。</p>
     <div class="legend">
