@@ -221,6 +221,7 @@ header .cloud-status.offline { background: rgba(220, 53, 69, 0.4); }
 .role-badge.superadmin { background: #6a4c93; color: white; }
 .role-badge.admin { background: #1976d2; color: white; }
 .role-badge.customer { background: #2e8b57; color: white; }
+.role-badge.query { background: #6a4c93; color: white; }
 .role-menu { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
 .role-btn { width: 100%; padding: 16px; background: #f4f6f9; border: 2px solid #d8dfe9; border-radius: 10px; cursor: pointer; font-size: 17px; font-weight: 700; color: #555; font-family: inherit; transition: all 0.15s; text-align: left; }
 .role-btn:hover { background: #e9eef5; border-color: #1e3a5f; color: #1e3a5f; }
@@ -234,6 +235,10 @@ body.role-admin .superadmin-only { display: none !important; }
 body.identity-anqin .seatmap-only { display: none !important; }
 body.identity-anqin .summary-stat.seat-stat { display: none !important; }
 body.identity-anqin .tab-overview { display: none !important; }
+/* 訂單查詢：只看訂單管理，可編輯查到的訂單 */
+body.role-query .tab-new { display: none !important; }
+body.role-query .tab-overview { display: none !important; }
+body.role-query #btnExportCSV, body.role-query #btnPrintAll, body.role-query #btnClearAll { display: none !important; }
 /* 連續多日模式：停用自選座位 */
 body.mode-range .seatmap-only { display: none !important; }
 body.mode-range .summary-stat.seat-stat { display: none !important; }
@@ -283,11 +288,18 @@ body.mode-range .summary-stat.day-stat { display: block; }
     <div class="subtitle">115年7月8月安親班團體訂餐 · 請選擇身分</div>
     <div class="role-menu">
       <button class="role-btn" data-identity="anqin">🏫 安親團體</button>
+      <button class="role-btn" id="btnQueryLogin">🔎 訂單查詢</button>
       <button class="role-btn role-btn-admin" data-identity="wei">🛡️ 管理人 wei</button>
     </div>
     <div id="adminPwBox" style="display:none;">
       <div class="lc-fg"><label>管理人密碼</label><input type="password" id="adminPassword" placeholder="請輸入密碼" autocomplete="current-password"></div>
       <button class="btn-login" id="btnAdminLogin">登入</button>
+    </div>
+    <div id="queryLoginBox" style="display:none;">
+      <div class="lc-fg"><label>訂單號碼</label><input type="text" id="qlOrderNo" maxlength="4" placeholder="例：B473" style="text-transform:uppercase;"></div>
+      <div style="text-align:center; color:#888; font-size:12px; margin:6px 0;">— 或 —</div>
+      <div class="lc-fg"><label>聯絡手機</label><input type="tel" id="qlPhone" placeholder="例：0912345678"></div>
+      <button class="btn-login" id="btnQuerySubmit">查詢並登入</button>
     </div>
     <div class="error-msg" id="loginError"></div>
   </div>
@@ -310,7 +322,7 @@ body.mode-range .summary-stat.day-stat { display: block; }
 </div>
 
 <div class="tabs no-print">
-  <button class="tab-btn active" data-tab="new">📝 新增訂單</button>
+  <button class="tab-btn tab-new active" data-tab="new">📝 新增訂單</button>
   <button class="tab-btn" data-tab="manage">📋 訂單管理</button>
   <button class="tab-btn tab-overview" data-tab="overview">🪑 座位總覽</button>
   <button class="tab-btn superadmin-only" data-tab="logs">🕐 登入紀錄</button>
@@ -324,6 +336,7 @@ body.mode-range .summary-stat.day-stat { display: block; }
       <div class="form-group"><label>安親班名稱<span class="required">*</span></label><input type="text" id="schoolName" placeholder="例：陽光安親班"></div>
       <div class="form-group"><label>聯絡人<span class="required">*</span></label><input type="text" id="contact" placeholder="例：王老師"></div>
       <div class="form-group"><label>聯絡手機<span class="required">*</span></label><input type="tel" id="phone" placeholder="例：0912-345-678"></div>
+      <div class="form-group"><label>學校電話<span class="required">*</span></label><input type="tel" id="schoolPhone" placeholder="例：02-2912-3456"></div>
     </div>
     <div id="orderCodeBox" style="margin-top:10px; font-size:13px; color:#888;"></div>
   </div>
@@ -406,6 +419,16 @@ body.mode-range .summary-stat.day-stat { display: block; }
 
 <div class="tab-content" id="tab-manage">
   <div class="section">
+    <h2>🔎 訂單號查詢</h2>
+    <p style="font-size:12px; color:#888; margin-bottom:10px;">輸入訂單號（1英文+3數字，例：B473）可直接查出該筆訂單，不限本帳號。</p>
+    <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+      <input type="text" id="orderNoQuery" maxlength="4" placeholder="例：B473" style="padding:10px 12px; border:2px solid #d8dfe9; border-radius:8px; font-size:15px; font-family:inherit; text-transform:uppercase; width:140px;">
+      <button class="btn btn-primary btn-sm" id="btnQueryOrder">查詢</button>
+      <button class="btn btn-secondary btn-sm" id="btnQueryClear">清除</button>
+    </div>
+    <div id="queryResult" style="margin-top:14px;"></div>
+  </div>
+  <div class="section">
     <h2>📋 全部訂單</h2>
     <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
       <button class="btn btn-success btn-sm" id="btnExportCSV">📤 匯出 CSV</button>
@@ -442,6 +465,11 @@ body.mode-range .summary-stat.day-stat { display: block; }
 </div>
 
 <div class="tab-content" id="tab-logs">
+  <div class="section superadmin-only">
+    <h2>🔒 IP 鎖定管理</h2>
+    <p style="font-size:12px; color:#888; margin-bottom:10px;">連續登入失敗 3 次的 IP 會被鎖定 5 分鐘。可在此手動解鎖。</p>
+    <div id="ipBlockList"></div>
+  </div>
   <div class="section superadmin-only">
     <h2>🕐 登入紀錄（僅管理人可見）</h2>
     <p style="font-size:12px; color:#888; margin-bottom:10px;">記錄每次登入的身分、IP 與約略位置（依 IP 推估，僅供參考）。顯示最近 200 筆。</p>
@@ -499,11 +527,12 @@ let CURRENT_USER = null;
 function isSuperAdmin() { return CURRENT_USER && CURRENT_USER.role === 'superadmin'; }
 function isAdmin() { return CURRENT_USER && (CURRENT_USER.role === 'admin' || CURRENT_USER.role === 'superadmin'); }
 function isCustomer() { return CURRENT_USER && CURRENT_USER.role === 'customer'; }
+function isQuery() { return CURRENT_USER && CURRENT_USER.role === 'query'; }
 function canSeeAllOrders() { return isAdmin(); }
 
 function applyRoleClass() {
-  document.body.classList.remove('role-customer','role-admin','role-superadmin');
-  document.body.classList.remove('identity-counter','identity-store','identity-anqin','identity-wei');
+  document.body.classList.remove('role-customer','role-admin','role-superadmin','role-query');
+  document.body.classList.remove('identity-counter','identity-store','identity-anqin','identity-wei','identity-query');
   if (CURRENT_USER) {
     document.body.classList.add('role-' + CURRENT_USER.role);
     document.body.classList.add('identity-' + CURRENT_USER.username);
@@ -534,7 +563,7 @@ function showLoginUI() {
 function hideLoginUI() {
   document.getElementById('loginOverlay').classList.remove('show');
   document.getElementById('userInfo').style.display = 'inline-flex';
-  const roleLabels = { superadmin: '🔑 超管', admin: '🛡️ 管理員', customer: '🍱 訂餐' };
+  const roleLabels = { superadmin: '🔑 超管', admin: '🛡️ 管理員', customer: '🍱 訂餐', query: '🔎 查詢' };
   document.getElementById('loginUserName').innerHTML =
     '<span class="role-badge ' + CURRENT_USER.role + '">' + (roleLabels[CURRENT_USER.role] || '') + '</span> ' + escapeHtml(CURRENT_USER.name);
 }
@@ -550,36 +579,116 @@ function loginAs(key) {
   document.getElementById('adminPwBox').style.display = 'none';
   document.getElementById('adminPassword').value = '';
   document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('selected'));
+  document.getElementById('queryLoginBox').style.display = 'none';
+  clearLoginFails();        // 成功登入 → 清除失敗計數
   logLogin(user); // 背景記錄登入 IP，不影響登入速度
   refreshActiveTab();
   renderAll();
+}
+// 訂單查詢登入（role: query）
+function loginAsQuery(matchType, matchValue) {
+  CURRENT_USER = { username: 'query', role: 'query', name: '訂單查詢', matchType: matchType, matchValue: matchValue };
+  applyRoleClass();
+  hideLoginUI();
+  document.getElementById('loginError').textContent = '';
+  document.getElementById('queryLoginBox').style.display = 'none';
+  document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('selected'));
+  clearLoginFails();
+  logLogin(CURRENT_USER);
+  switchTab('manage');
+  renderAll();
+}
+
+// ==================== IP 取得 / 控制 ====================
+let CLIENT_IP = '';
+let CLIENT_LOC = '';
+async function getClientIp() {
+  if (CLIENT_IP) return CLIENT_IP;
+  try {
+    const r = await fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(5000) });
+    if (r.ok) { const j = await r.json(); CLIENT_IP = j.ip || ''; CLIENT_LOC = [j.city, j.region, j.country_name].filter(Boolean).join(', '); }
+  } catch(e) {}
+  if (!CLIENT_IP) {
+    try { const r2 = await fetch('https://api.ipify.org?format=json', { signal: AbortSignal.timeout(5000) }); if (r2.ok) CLIENT_IP = (await r2.json()).ip || ''; } catch(e) {}
+  }
+  return CLIENT_IP;
+}
+function ipDocId(ip) { return (ip || 'unknown').replace(/[^a-zA-Z0-9]/g, '_'); }
+const IP_BLOCK_MS = 5 * 60 * 1000;       // 登入鎖定 5 分鐘
+const IP_FAIL_LIMIT = 3;                 // 連續錯誤 3 次
+const ORDER_WINDOW_MS = 60 * 60 * 1000;  // 防洗單視窗 60 分鐘
+const ORDER_LIMIT = 10;                  // 60 分鐘內最多 10 筆
+
+// 回傳 {blocked, until} ；fail open（db 或 ip 無法取得時不擋）
+async function checkIpBlocked() {
+  if (!db) return { blocked: false };
+  const ip = await getClientIp();
+  if (!ip) return { blocked: false };
+  try {
+    const snap = await getDoc(doc(db, 'ipControl', ipDocId(ip)));
+    if (snap.exists()) {
+      const d = snap.data();
+      if (d.blockedUntil && d.blockedUntil > Date.now()) return { blocked: true, until: d.blockedUntil };
+    }
+  } catch(e) { console.error('checkIpBlocked', e); }
+  return { blocked: false };
+}
+async function recordLoginFail() {
+  if (!db) return;
+  const ip = await getClientIp();
+  if (!ip) return;
+  const ref = doc(db, 'ipControl', ipDocId(ip));
+  try {
+    const snap = await getDoc(ref);
+    const now = Date.now();
+    let fails = 0, firstFailAt = now;
+    if (snap.exists()) {
+      const d = snap.data();
+      fails = d.fails || 0; firstFailAt = d.firstFailAt || now;
+      if (now - firstFailAt > IP_BLOCK_MS) { fails = 0; firstFailAt = now; } // 視窗過期重算
+    }
+    fails += 1;
+    const data = { ip: ip, fails: fails, firstFailAt: firstFailAt, lastFailAt: now, updatedAt: serverTimestamp() };
+    if (fails >= IP_FAIL_LIMIT) {
+      data.blockedUntil = now + IP_BLOCK_MS;
+      data.fails = 0; data.firstFailAt = now;
+      notifyAlert('IP 登入鎖定', `IP ${ip} 連續登入失敗達 ${IP_FAIL_LIMIT} 次，已鎖定 5 分鐘。`);
+    }
+    await setDoc(ref, data, { merge: true });
+  } catch(e) { console.error('recordLoginFail', e); }
+}
+async function clearLoginFails() {
+  if (!db) return;
+  const ip = await getClientIp();
+  if (!ip) return;
+  try { await setDoc(doc(db, 'ipControl', ipDocId(ip)), { fails: 0 }, { merge: true }); } catch(e) {}
+}
+async function unblockIp(ipDoc) {
+  if (!db) return;
+  try { await setDoc(doc(db, 'ipControl', ipDoc), { blockedUntil: 0, fails: 0, manualUnlockAt: serverTimestamp() }, { merge: true }); } catch(e) { console.error('unblockIp', e); }
+}
+// 登入前統一檢查鎖定，blocked 時顯示訊息並回傳 true
+async function ensureNotBlocked() {
+  const r = await checkIpBlocked();
+  if (r.blocked) {
+    const mins = Math.ceil((r.until - Date.now()) / 60000);
+    document.getElementById('loginError').textContent = `⛔ 此 IP 因多次登入失敗已被鎖定，請於約 ${mins} 分鐘後再試（或聯繫管理人解鎖）`;
+    return false;
+  }
+  return true;
 }
 
 // ==================== 登入 IP 紀錄 ====================
 async function logLogin(user) {
   if (!db) return;
-  let ip = '', location = '';
-  try {
-    const r = await fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(5000) });
-    if (r.ok) {
-      const j = await r.json();
-      ip = j.ip || '';
-      location = [j.city, j.region, j.country_name].filter(Boolean).join(', ');
-    }
-  } catch(e) {}
-  if (!ip) {
-    try {
-      const r2 = await fetch('https://api.ipify.org?format=json', { signal: AbortSignal.timeout(5000) });
-      if (r2.ok) ip = (await r2.json()).ip || '';
-    } catch(e) {}
-  }
+  const ip = await getClientIp();
   try {
     await addDoc(collection(db, 'loginLogs'), {
       identity: user.username,
       name: user.name,
       role: user.role,
       ip: ip || '無法取得',
-      location: location,
+      location: CLIENT_LOC,
       userAgent: (navigator.userAgent || '').slice(0, 200),
       createdAt: serverTimestamp()
     });
@@ -607,36 +716,82 @@ async function renderLoginLogs() {
   } catch(e) { el.innerHTML = '<div class="empty-state">讀取失敗：' + escapeHtml(e.message) + '</div>'; }
 }
 
+async function renderIpBlocks() {
+  const el = document.getElementById('ipBlockList');
+  if (!el) return;
+  if (!isSuperAdmin()) { el.innerHTML = ''; return; }
+  if (!db) { el.innerHTML = '<div class="empty-state">雲端尚未連線</div>'; return; }
+  el.innerHTML = '<div class="empty-state">載入中...</div>';
+  try {
+    const snap = await getDocs(collection(db, 'ipControl'));
+    const now = Date.now();
+    const blocked = [];
+    snap.forEach(d => { const v = d.data(); if (v.blockedUntil && v.blockedUntil > now) blocked.push({ id: d.id, ...v }); });
+    if (blocked.length === 0) { el.innerHTML = '<div class="empty-state"><div class="icon">✅</div>目前沒有被鎖定的 IP</div>'; return; }
+    let html = '<div style="overflow-x:auto;"><table class="orders-table"><thead><tr><th>IP</th><th>剩餘鎖定</th><th>操作</th></tr></thead><tbody>';
+    blocked.forEach(b => {
+      const mins = Math.ceil((b.blockedUntil - now) / 60000);
+      html += `<tr><td>${escapeHtml(b.ip || b.id)}</td><td>約 ${mins} 分鐘</td><td><button class="btn btn-sm btn-success" data-unblock="${b.id}">解鎖</button></td></tr>`;
+    });
+    html += '</tbody></table></div>';
+    el.innerHTML = html;
+    el.querySelectorAll('button[data-unblock]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        await unblockIp(btn.getAttribute('data-unblock'));
+        showToast('已解鎖', 'success');
+        renderIpBlocks();
+      });
+    });
+  } catch(e) { el.innerHTML = '<div class="empty-state">讀取失敗：' + escapeHtml(e.message) + '</div>'; }
+}
+
 function bindAuthHandlers() {
-  document.querySelectorAll('.role-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
+  document.querySelectorAll('.role-btn[data-identity]').forEach(btn => {
+    btn.addEventListener('click', async () => {
       const key = btn.getAttribute('data-identity');
       const err = document.getElementById('loginError');
       err.textContent = '';
+      document.getElementById('queryLoginBox').style.display = 'none';
       if (IDENTITIES[key] && IDENTITIES[key].password) {
         // 管理人需輸入密碼
         document.querySelectorAll('.role-btn').forEach(b => b.classList.toggle('selected', b === btn));
         document.getElementById('adminPwBox').style.display = 'block';
         document.getElementById('adminPassword').focus();
       } else if (IDENTITIES[key]) {
+        if (!(await ensureNotBlocked())) return;
         loginAs(key);
       }
     });
   });
+  // 訂單查詢按鈕：展開查詢框
+  document.getElementById('btnQueryLogin').addEventListener('click', () => {
+    document.getElementById('loginError').textContent = '';
+    document.getElementById('adminPwBox').style.display = 'none';
+    document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('selected'));
+    document.getElementById('btnQueryLogin').classList.add('selected');
+    document.getElementById('queryLoginBox').style.display = 'block';
+    document.getElementById('qlOrderNo').focus();
+  });
+  document.getElementById('btnQuerySubmit').addEventListener('click', submitQueryLogin);
+  ['qlOrderNo','qlPhone'].forEach(id => document.getElementById(id).addEventListener('keypress', e => { if (e.key === 'Enter') submitQueryLogin(); }));
   // 隱藏入口：標題左側=出餐部、右側=櫃台
   document.querySelectorAll('.hidden-zone .hz-half').forEach(z => {
-    z.addEventListener('click', () => {
+    z.addEventListener('click', async () => {
       const key = z.getAttribute('data-identity');
-      if (IDENTITIES[key]) loginAs(key);
+      if (IDENTITIES[key]) { if (!(await ensureNotBlocked())) return; loginAs(key); }
     });
   });
-  document.getElementById('btnAdminLogin').addEventListener('click', () => {
+  document.getElementById('btnAdminLogin').addEventListener('click', async () => {
     const p = document.getElementById('adminPassword').value;
     const err = document.getElementById('loginError');
+    if (!(await ensureNotBlocked())) return;
     if (p === IDENTITIES.wei.password) {
       loginAs('wei');
     } else {
       err.textContent = '❌ 密碼錯誤';
+      await recordLoginFail();
+      const b = await checkIpBlocked();
+      if (b.blocked) await ensureNotBlocked();
     }
   });
   document.getElementById('adminPassword').addEventListener('keypress', (ev) => {
@@ -646,9 +801,30 @@ function bindAuthHandlers() {
     clearSession();
     document.getElementById('adminPwBox').style.display = 'none';
     document.getElementById('adminPassword').value = '';
+    document.getElementById('queryLoginBox').style.display = 'none';
     document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('selected'));
     showLoginUI();
   });
+}
+
+async function submitQueryLogin() {
+  const err = document.getElementById('loginError');
+  err.textContent = '';
+  if (!(await ensureNotBlocked())) return;
+  const no = (document.getElementById('qlOrderNo').value || '').trim().toUpperCase();
+  const phone = (document.getElementById('qlPhone').value || '').trim();
+  if (!no && !phone) { err.textContent = '請輸入訂單號碼或聯絡手機'; return; }
+  let matched = [];
+  if (no) matched = ORDERS.filter(o => (o.orderNo || '').toUpperCase() === no);
+  else matched = ORDERS.filter(o => (o.phone || '') === phone);
+  if (matched.length === 0) {
+    err.textContent = '❌ 查無符合的訂單';
+    await recordLoginFail();
+    const b = await checkIpBlocked();
+    if (b.blocked) await ensureNotBlocked();
+    return;
+  }
+  loginAsQuery(no ? 'orderNo' : 'phone', no || phone);
 }
 
 function checkExistingSession() {
@@ -773,7 +949,8 @@ function newOrderTemplate() {
   return {
     id: null, code: '', date: getDefaultDate(),
     dateMode: 'single', dateEnd: '', dateCount: 1, weekdays: [1,2,3,4,5], dates: [],
-    schoolName: '', contact: '', phone: '',
+    orderNo: '',
+    schoolName: '', contact: '', phone: '', schoolPhone: '',
     timeSlot: '',
     meals: { A: 0, B: 0, C: 0 },
     seats: { D_students: 0, D_teachers: 0, E_students: 0, E_teachers: 0 },
@@ -817,6 +994,8 @@ if (isConfigured()) {
   setCloudStatus('💾 本機模式（未設定 Firebase）', 'offline');
   fallbackLocal();
 }
+
+getClientIp(); // 預先取得 IP，供鎖定/防洗單判斷
 
 function fallbackLocal() {
   try { ORDERS = JSON.parse(localStorage.getItem(LOCAL_KEY) || '[]'); }
@@ -872,6 +1051,17 @@ function nextAvailableCode(usedSet) {
 function generateNextCode() {
   const used = new Set(ORDERS.map(o => o.code).filter(Boolean));
   return nextAvailableCode(used);
+}
+function generateOrderNo() {
+  const used = new Set(ORDERS.map(o => o.orderNo).filter(Boolean));
+  const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // 去掉易混淆的 I/O
+  for (let i = 0; i < 5000; i++) {
+    const L = letters[Math.floor(Math.random() * letters.length)];
+    const num = String(Math.floor(Math.random() * 1000)).padStart(3, '0');
+    const no = L + num;
+    if (!used.has(no)) return no;
+  }
+  return 'X' + String(Date.now()).slice(-3); // 極端後備
 }
 function getOrderColor(code) {
   if (!code) return '#888';
@@ -1184,10 +1374,12 @@ function updateSummary() {
   currentOrder.schoolName = document.getElementById('schoolName').value.trim();
   currentOrder.contact = document.getElementById('contact').value.trim();
   currentOrder.phone = document.getElementById('phone').value.trim();
+  const sp = document.getElementById('schoolPhone'); if (sp) currentOrder.schoolPhone = sp.value.trim();
   const code = currentOrder.code || generateNextCode();
   const box = document.getElementById('orderCodeBox');
-  if (currentOrder.code) { box.innerHTML = `📌 訂單代號：<strong style="color:${getOrderColor(currentOrder.code)};">${currentOrder.code}</strong>（編輯中）`; }
-  else { box.innerHTML = `📌 預計分配代號：<strong style="color:${getOrderColor(code)};">${code}</strong>`; }
+  const noTxt = currentOrder.orderNo ? `　|　🔖 訂單號：<strong>${currentOrder.orderNo}</strong>` : '';
+  if (currentOrder.code) { box.innerHTML = `📌 訂單代號：<strong style="color:${getOrderColor(currentOrder.code)};">${currentOrder.code}</strong>（編輯中）${noTxt}`; }
+  else { box.innerHTML = `📌 預計分配代號：<strong style="color:${getOrderColor(code)};">${code}</strong>　|　🔖 訂單號將於儲存時自動產生`; }
 }
 
 // ==================== 儲存（雲端 / 本機） ====================
@@ -1195,6 +1387,7 @@ function validateOrder() {
   if (!currentOrder.schoolName) return '請輸入安親班名稱';
   if (!currentOrder.contact) return '請輸入聯絡人';
   if (!currentOrder.phone) return '請輸入聯絡手機';
+  if (!currentOrder.schoolPhone) return '請輸入學校電話';
   if (!currentOrder.timeSlot) return '請選擇用餐時段';
   const isRange = currentOrder.dateMode === 'range';
   if (isRange) {
@@ -1259,9 +1452,11 @@ function notifyLINE(action, orderData, extra = {}) {
       operatorName: CURRENT_USER ? CURRENT_USER.name : 'unknown',
       operationTime: timeNow,
       code: orderData.code,
+      orderNo: orderData.orderNo || '',
       schoolName: orderData.schoolName,
       contact: orderData.contact,
       phone: orderData.phone,
+      schoolPhone: orderData.schoolPhone || '',
       date: orderData.date,
       dateLabel: dateLabel,
       timeSlot: orderData.timeSlot,
@@ -1280,14 +1475,54 @@ function notifyLINE(action, orderData, extra = {}) {
   }).catch(e => console.error('LINE 通知失敗:', e));
 }
 
+// 系統異常警示（透過同一 Make Webhook 發 LINE）
+function notifyAlert(title, detail) {
+  const now = new Date();
+  const timeNow = `${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  try {
+    fetch(MAKE_WEBHOOK_URL, {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        action: 'alert',
+        actionLabel: '⚠️ 系統異常警示',
+        code: '!', orderNo: '-',
+        schoolName: title,
+        contact: detail,
+        phone: CLIENT_IP || '未知IP',
+        schoolPhone: '-',
+        date: '', dateLabel: timeNow,
+        timeSlot: '-', mealsSummary: '-', seatsSummary: '-', seatsStr: '-',
+        totalPeople: 0, totalAmount: 0,
+        operatorName: '系統', operatorRole: 'system', operationTime: timeNow
+      })
+    }).catch(e => console.error('警示通知失敗', e));
+  } catch(e) {}
+}
+
 async function saveCurrentOrder() {
   updateSummary();
   const err = validateOrder();
   if (err) { showToast(err, 'error'); return; }
 
+  // 防洗單：同 IP 60 分鐘內不可建立超過 10 筆（僅新建檢查）
+  if (!editingOrderId) {
+    await getClientIp();
+    if (CLIENT_IP) {
+      const since = Date.now() - ORDER_WINDOW_MS;
+      const recent = ORDERS.filter(o => o.creatorIp === CLIENT_IP && (o.createdMs || 0) > since).length;
+      if (recent >= ORDER_LIMIT) {
+        showToast(`偵測到異常：同一網路 60 分鐘內已建立 ${recent} 筆訂單，暫時停止新增。`, 'error');
+        notifyAlert('疑似惡意洗單', `IP ${CLIENT_IP} 於 60 分鐘內已建立 ${recent} 筆訂單，已阻擋新增。`);
+        return;
+      }
+    }
+  }
+
   const orderData = {
     code: currentOrder.code || generateNextCode(),
+    orderNo: currentOrder.orderNo || generateOrderNo(),
     schoolName: currentOrder.schoolName, contact: currentOrder.contact, phone: currentOrder.phone,
+    schoolPhone: currentOrder.schoolPhone || '',
     date: currentOrder.date || getDefaultDate(),
     dateMode: currentOrder.dateMode || 'single',
     dateEnd: currentOrder.dateMode === 'range' ? (currentOrder.dateEnd || currentOrder.date) : '',
@@ -1298,8 +1533,12 @@ async function saveCurrentOrder() {
     meals: currentOrder.meals, seats: currentOrder.seats,
     selectedSeats: currentOrder.selectedSeats,
     createdAt: currentOrder.createdAt || Date.now(),
+    createdMs: currentOrder.createdMs || Date.now(),
+    creatorIp: currentOrder.creatorIp || CLIENT_IP || '',
     ownerId: currentOrder.ownerId || (CURRENT_USER ? CURRENT_USER.username : 'unknown')
   };
+
+  const wasEditing = !!editingOrderId;
 
   if (useFirebase && db) {
     try {
@@ -1311,7 +1550,7 @@ async function saveCurrentOrder() {
       } else {
         orderData.createdAt = serverTimestamp();
         await addDoc(collection(db, 'orders'), orderData);
-        showToast(`訂單已儲存（代號 ${orderData.code}）`, 'success');
+        showToast(`訂單已儲存（訂單號 ${orderData.orderNo}）`, 'success');
 
         // 通知 LINE（透過 Make.com Webhook）
         notifyLINE('create', orderData);
@@ -1329,13 +1568,17 @@ async function saveCurrentOrder() {
     } else {
       orderData.id = 'O' + Date.now();
       ORDERS.push(orderData);
-      showToast(`訂單已儲存（代號 ${orderData.code}）`, 'success');
+      showToast(`訂單已儲存（訂單號 ${orderData.orderNo}）`, 'success');
     }
     saveLocal();
     renderAll();
   }
   resetForm();
   switchTab('manage');
+  // 編輯後提示：請與張副總確認
+  if (wasEditing) {
+    showModal('訂單已更動', '更動訂單，請與張副總確認。', () => {});
+  }
 }
 
 function resetForm() {
@@ -1344,6 +1587,7 @@ function resetForm() {
   document.getElementById('schoolName').value = '';
   document.getElementById('contact').value = '';
   document.getElementById('phone').value = '';
+  const sp = document.getElementById('schoolPhone'); if (sp) sp.value = '';
   document.getElementById('btnSave').textContent = '💾 儲存訂單';
 }
 
@@ -1368,14 +1612,29 @@ async function deleteOrder(id) {
   });
 }
 
+// 是否仍可編輯：需在用餐日 3 天(含)以前
+function daysUntil(dateStr) {
+  if (!dateStr) return 999;
+  const [y,m,d] = dateStr.split('-').map(Number);
+  const target = new Date(y, m-1, d); target.setHours(0,0,0,0);
+  const today = new Date(); today.setHours(0,0,0,0);
+  return Math.round((target - today) / 86400000);
+}
+function canEditByDate(o) { return daysUntil(o.date) >= 3; }
+
 function editOrder(id) {
   const o = ORDERS.find(x => x.id === id);
   if (!o) return;
+  if (!canEditByDate(o)) {
+    showToast(`此訂單用餐日為 ${o.date}，僅能於用餐日 3 天前修改，已逾期無法編輯。`, 'error');
+    return;
+  }
   currentOrder = JSON.parse(JSON.stringify(o));
   editingOrderId = id;
   document.getElementById('schoolName').value = o.schoolName;
   document.getElementById('contact').value = o.contact;
   document.getElementById('phone').value = o.phone;
+  const sp = document.getElementById('schoolPhone'); if (sp) sp.value = o.schoolPhone || '';
   document.getElementById('btnSave').textContent = '💾 更新訂單';
   switchTab('new');
   renderAll();
@@ -1386,7 +1645,44 @@ function editOrder(id) {
 function getVisibleOrders() {
   if (canSeeAllOrders()) return ORDERS;
   if (isCustomer()) return ORDERS.filter(o => o.ownerId === CURRENT_USER.username);
+  if (isQuery()) {
+    if (CURRENT_USER.matchType === 'orderNo') return ORDERS.filter(o => (o.orderNo||'').toUpperCase() === CURRENT_USER.matchValue);
+    return ORDERS.filter(o => (o.phone||'') === CURRENT_USER.matchValue);
+  }
   return [];
+}
+
+function queryOrderByNo() {
+  const input = document.getElementById('orderNoQuery');
+  const result = document.getElementById('queryResult');
+  const no = (input.value || '').trim().toUpperCase();
+  if (!no) { result.innerHTML = '<div style="color:#888; font-size:13px;">請輸入訂單號</div>'; return; }
+  const o = ORDERS.find(x => (x.orderNo || '').toUpperCase() === no);
+  if (!o) { result.innerHTML = `<div style="padding:12px; background:#fdecef; border-radius:8px; color:#c0392b;">查無訂單號「${escapeHtml(no)}」</div>`; return; }
+  const slot = TIME_SLOTS.find(s => s.id === o.timeSlot);
+  const mealsArr = [];
+  if (o.meals.A) mealsArr.push(`A×${o.meals.A}`);
+  if (o.meals.B) mealsArr.push(`B×${o.meals.B}`);
+  if (o.meals.C) mealsArr.push(`C×${o.meals.C}`);
+  const seatArr = [];
+  if (o.seats.D_students) seatArr.push(`D學生×${o.seats.D_students}`);
+  if (o.seats.D_teachers) seatArr.push(`D老師×${o.seats.D_teachers}`);
+  if (o.seats.E_students) seatArr.push(`E學生×${o.seats.E_students}`);
+  if (o.seats.E_teachers) seatArr.push(`E老師×${o.seats.E_teachers}`);
+  const row = (k,v) => `<div style="display:grid; grid-template-columns:96px 1fr; gap:6px; padding:5px 0; border-bottom:1px dashed #e5e5e5;"><div style="color:#888;">${k}</div><div><strong>${v}</strong></div></div>`;
+  result.innerHTML = `<div style="border:2px solid #1e3a5f; border-radius:10px; padding:16px; background:#f8fafc;">
+    <div style="font-size:18px; font-weight:700; color:#1e3a5f; margin-bottom:10px;">🔖 訂單號 ${escapeHtml(o.orderNo)}　<span style="font-size:13px; color:#888;">(代號 ${o.code || '?'})</span></div>
+    ${row('安親班', escapeHtml(o.schoolName||'—'))}
+    ${row('聯絡人', escapeHtml(o.contact||'—'))}
+    ${row('聯絡手機', escapeHtml(o.phone||'—'))}
+    ${row('學校電話', escapeHtml(o.schoolPhone||'—'))}
+    ${row('用餐日期', escapeHtml(orderDateLabel(o)))}
+    ${row('用餐時段', escapeHtml(o.timeSlot||'—'))}
+    ${row('套餐', mealsArr.length?mealsArr.join('、'):'無')}
+    ${row('預約座位', seatArr.length?seatArr.join('、'):'無')}
+    ${row('總人數', totalPeople(o) + ' 人')}
+    ${row('應付金額', '$' + calcTotal(o).toLocaleString())}
+  </div>`;
 }
 
 function renderOrdersList() {
@@ -1395,17 +1691,19 @@ function renderOrdersList() {
   if (visible.length === 0) { container.innerHTML = '<div class="empty-state"><div class="icon">📭</div>' + (isCustomer() ? '你還沒有訂單，請到「新增訂單」建立' : '還沒有訂單') + '</div>'; return; }
   const sorted = [...visible].sort((a, b) => { if ((a.date||'') !== (b.date||'')) return (a.date||'').localeCompare(b.date||''); if (a.timeSlot !== b.timeSlot) return a.timeSlot.localeCompare(b.timeSlot); return (a.code || '').localeCompare(b.code || ''); });
   let html = `<div style="overflow-x:auto;"><table class="orders-table"><thead><tr>
-    <th>代號</th><th>時段</th><th>安親班</th><th>聯絡人</th><th>手機</th><th>套餐(A/B/C)</th><th>座位(D/E)</th><th>老師</th><th>總人數</th><th>金額</th><th>操作</th>
+    <th>訂單號</th><th>代號</th><th>日期</th><th>時段</th><th>安親班</th><th>聯絡人</th><th>手機</th><th>學校電話</th><th>套餐(A/B/C)</th><th>座位(D/E)</th><th>老師</th><th>總人數</th><th>金額</th><th>操作</th>
   </tr></thead><tbody>`;
   sorted.forEach(o => {
     const slot = TIME_SLOTS.find(s => s.id === o.timeSlot);
     const color = getOrderColor(o.code);
     html += `<tr>
+      <td><strong style="font-family:monospace; font-size:14px;">${o.orderNo || '—'}</strong></td>
       <td><span class="order-code-tag" style="background:${color};">${o.code || '?'}</span></td>
       <td style="font-size:12px; white-space:nowrap;">${orderDateLabel(o)}</td>
       <td><span class="time-tag ${slot ? slot.tag : ''}">${o.timeSlot}</span></td>
       <td><strong>${escapeHtml(o.schoolName)}</strong></td>
       <td>${escapeHtml(o.contact)}</td><td>${escapeHtml(o.phone)}</td>
+      <td>${escapeHtml(o.schoolPhone || '—')}</td>
       <td>${o.meals.A}/${o.meals.B}/${o.meals.C}</td>
       <td>${o.seats.D_students}/${o.seats.E_students}</td>
       <td>${o.seats.D_teachers + o.seats.E_teachers}</td>
@@ -1536,9 +1834,9 @@ function printAll() {
 function exportCSV() {
   const visible = getVisibleOrders();
   if (visible.length === 0) { showToast('沒有訂單可匯出', 'error'); return; }
-  const headers = ['代號','訂單編號','建立時間','日期','結束日','指定星期','總次數','時段','安親班','聯絡人','手機','A套餐','B套餐','C套餐','D學生','D老師','E學生','E老師','總人數','金額','座位編號'];
+  const headers = ['訂單號','代號','訂單編號','建立時間','日期','結束日','指定星期','總次數','時段','安親班','聯絡人','手機','學校電話','A套餐','B套餐','C套餐','D學生','D老師','E學生','E老師','總人數','金額','座位編號'];
   const sorted = [...visible].sort((a, b) => (a.date||'').localeCompare(b.date||'') || a.timeSlot.localeCompare(b.timeSlot) || (a.code||'').localeCompare(b.code||''));
-  const rows = sorted.map(o => [o.code, o.id, new Date(o.createdAt).toLocaleString('zh-TW'), o.date || '', (o.dateMode==='range'?(o.dateEnd||''):''), (o.dateMode==='range'?weekdaysLabel(o.weekdays):''), orderDateCount(o), o.timeSlot, o.schoolName, o.contact, o.phone, o.meals.A, o.meals.B, o.meals.C, o.seats.D_students, o.seats.D_teachers, o.seats.E_students, o.seats.E_teachers, totalPeople(o), calcTotal(o), o.selectedSeats.join(' ')]);
+  const rows = sorted.map(o => [o.orderNo || '', o.code, o.id, new Date(o.createdAt).toLocaleString('zh-TW'), o.date || '', (o.dateMode==='range'?(o.dateEnd||''):''), (o.dateMode==='range'?weekdaysLabel(o.weekdays):''), orderDateCount(o), o.timeSlot, o.schoolName, o.contact, o.phone, o.schoolPhone || '', o.meals.A, o.meals.B, o.meals.C, o.seats.D_students, o.seats.D_teachers, o.seats.E_students, o.seats.E_teachers, totalPeople(o), calcTotal(o), o.selectedSeats.join(' ')]);
   const csv = '﻿' + [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
@@ -1741,7 +2039,7 @@ function switchTab(tab) {
   if (tab === 'manage') renderOrdersList();
   if (tab === 'overview') renderOverview();
   if (tab === 'new') renderAll();
-  if (tab === 'logs') renderLoginLogs();
+  if (tab === 'logs') { renderLoginLogs(); renderIpBlocks(); }
 }
 function refreshActiveTab() {
   if (currentTab === 'manage') renderOrdersList();
@@ -1757,6 +2055,14 @@ document.getElementById('btnReset').addEventListener('click', () => {
   showModal('清空表單', '要清空目前輸入的內容嗎？', () => { resetForm(); renderAll(); showToast('已清空', 'success'); });
 });
 document.getElementById('btnExportCSV').addEventListener('click', exportCSV);
+(function(){
+  const q = document.getElementById('orderNoQuery');
+  const btnQ = document.getElementById('btnQueryOrder');
+  const btnC = document.getElementById('btnQueryClear');
+  if (btnQ) btnQ.addEventListener('click', queryOrderByNo);
+  if (btnC) btnC.addEventListener('click', () => { q.value = ''; document.getElementById('queryResult').innerHTML = ''; });
+  if (q) q.addEventListener('keypress', e => { if (e.key === 'Enter') queryOrderByNo(); });
+})();
 document.getElementById('btnPrintAll').addEventListener('click', printAll);
 document.getElementById('btnClearAll').addEventListener('click', () => {
   if (ORDERS.length === 0) { showToast('沒有訂單', 'error'); return; }
