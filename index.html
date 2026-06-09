@@ -71,7 +71,7 @@ header .cloud-status.offline { background: rgba(220, 53, 69, 0.4); }
 .seatmap-stage { background: linear-gradient(135deg, #35507a, #1e3a5f); color: white; text-align: center; padding: 8px; border-radius: 8px; margin-bottom: 22px; font-weight: 600; font-size: 13px; letter-spacing: 2px; }
 .tables-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px 18px; min-width: 720px; }
 /* 座位總覽：直立桌(座位在左右)，4 桌一排 */
-.tables-grid-vertical { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px 14px; min-width: 640px; }
+.tables-grid-vertical { display: grid; grid-template-rows: repeat(2, auto); grid-auto-flow: column; justify-content: start; gap: 26px 28px; min-width: 640px; }
 .vtable { display: flex; align-items: center; justify-content: center; gap: 6px; }
 .vtable .seats-col { display: flex; flex-direction: column; gap: 6px; }
 .vtable .table-body-v { writing-mode: vertical-rl; text-orientation: upright; background: linear-gradient(180deg, #64748b, #475569); color: white; padding: 16px 10px; border-radius: 6px; font-weight: 700; font-size: 13px; letter-spacing: 3px; box-shadow: 0 2px 4px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.2); align-self: stretch; display: flex; align-items: center; justify-content: center; }
@@ -277,7 +277,7 @@ body.mode-range .summary-stat.day-stat { display: block; }
 
 @media (max-width: 768px) {
   .tables-grid { grid-template-columns: repeat(2, 1fr); min-width: 100%; gap: 24px 12px; }
-  .tables-grid-vertical { grid-template-columns: repeat(2, 1fr); min-width: 100%; gap: 18px 10px; }
+  .tables-grid-vertical { grid-template-rows: repeat(4, auto); grid-auto-flow: column; min-width: 100%; gap: 18px 16px; }
   .summary-bar { flex-direction: column; align-items: stretch; }
   .summary-info { justify-content: space-between; }
 }
@@ -869,12 +869,13 @@ import { getFirestore, collection, doc, setDoc, addDoc, deleteDoc, getDoc, getDo
 
 // ==================== 設定 ====================
 const TABLE_CONFIG = [
-  { id: 'A', count: 6, start: 1 }, { id: 'B', count: 7, start: 7 },
-  { id: 'C', count: 7, start: 14 }, { id: 'D', count: 6, start: 21 },
-  { id: 'E', count: 6, start: 27 }, { id: 'F', count: 6, start: 33 },
-  { id: 'G', count: 6, start: 39 }, { id: 'H', count: 6, start: 45 }
+  { id: 'A', count: 6, start: 1 },  { id: 'B', count: 6, start: 7 },
+  { id: 'C', count: 6, start: 13 }, { id: 'D', count: 6, start: 19 },
+  { id: 'E', count: 6, start: 25 }, { id: 'F', count: 6, start: 31 },
+  { id: 'G', count: 6, start: 37 }, { id: 'H', count: 6, start: 43 },
+  { id: 'I', count: 6, start: 49 }, { id: 'J', count: 6, start: 55 }
 ];
-const TOTAL_SEATS = 50;
+const TOTAL_SEATS = 60;
 const TIME_SLOTS = [
   { id: '11:30-12:00', label: '11:30 - 12:00', tag: 't1' },
   { id: '12:10-12:40', label: '12:10 - 12:40', tag: 't2' },
