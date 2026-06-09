@@ -494,6 +494,15 @@ body.mode-range .summary-stat.day-stat { display: block; }
   </div>
 </div>
 
+<div class="modal" id="orderConfirmModal">
+  <div class="modal-content" style="max-width:460px; text-align:left;">
+    <h3 style="color:#1e3a5f; text-align:center; margin-bottom:6px;">✅ 訂單已送出</h3>
+    <p style="text-align:center; color:#888; font-size:13px; margin-bottom:14px;">請確認以下內容，並記下訂單號以便日後查詢/修改</p>
+    <div id="orderConfirmBody"></div>
+    <div class="modal-actions" style="margin-top:16px;"><button class="btn btn-primary" id="orderConfirmOk">確定</button></div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <div class="loading-overlay" id="loadingOverlay">
@@ -1619,6 +1628,10 @@ async function saveCurrentOrder() {
   // 安親團體沒有訂單管理頁，存單後留在新增訂單
   if (CURRENT_USER && CURRENT_USER.username === 'anqin') { switchTab('new'); renderAll(); }
   else switchTab('manage');
+  // 安親團體送出新訂單 → 跳出確認視窗顯示內容
+  if (CURRENT_USER && CURRENT_USER.username === 'anqin' && !wasEditing) {
+    showOrderConfirm(orderData);
+  }
   // 編輯後提示：請與張副總確認（出餐部/管理人操作排位不顯示）
   if (wasEditing && !canArrangeSeats()) {
     showModal('訂單已更動', '更動訂單，請與張副總確認。', () => {});
@@ -2102,6 +2115,32 @@ function showModal(title, message, onConfirm) {
   newConfirm.addEventListener('click', () => { modal.classList.remove('show'); onConfirm(); });
   cancelBtn.onclick = () => modal.classList.remove('show');
 }
+function showOrderConfirm(o) {
+  const row = (k,v) => `<div style="display:grid; grid-template-columns:88px 1fr; gap:6px; padding:5px 0; border-bottom:1px dashed #e5e5e5; font-size:14px;"><div style="color:#888;">${k}</div><div><strong>${v}</strong></div></div>`;
+  const mealsArr = [];
+  if (o.meals.A) mealsArr.push(`A×${o.meals.A}`);
+  if (o.meals.B) mealsArr.push(`B×${o.meals.B}`);
+  if (o.meals.C) mealsArr.push(`C×${o.meals.C}`);
+  const seatArr = [];
+  if (o.seats.D_students) seatArr.push(`D學生×${o.seats.D_students}`);
+  if (o.seats.D_teachers) seatArr.push(`D老師×${o.seats.D_teachers}`);
+  if (o.seats.E_students) seatArr.push(`E學生×${o.seats.E_students}`);
+  if (o.seats.E_teachers) seatArr.push(`E老師×${o.seats.E_teachers}`);
+  document.getElementById('orderConfirmBody').innerHTML =
+    `<div style="text-align:center; font-size:22px; font-weight:800; color:#1e3a5f; margin-bottom:12px;">🔖 訂單號 ${escapeHtml(o.orderNo || '')}</div>`
+    + row('安親班', escapeHtml(o.schoolName || '—'))
+    + row('聯絡人', escapeHtml(o.contact || '—'))
+    + row('聯絡手機', escapeHtml(o.phone || '—'))
+    + row('學校電話', escapeHtml(o.schoolPhone || '—'))
+    + row('用餐日期', escapeHtml(orderDateLabel(o)))
+    + row('用餐時段', escapeHtml(o.timeSlot || '—'))
+    + row('套餐', mealsArr.length ? mealsArr.join('、') : '無')
+    + row('預約座位', seatArr.length ? seatArr.join('、') : '無')
+    + row('總人數', totalPeople(o) + ' 人')
+    + row('應付金額', '$' + calcTotal(o).toLocaleString());
+  document.getElementById('orderConfirmModal').classList.add('show');
+}
+
 function showLoading(text='載入中...') {
   document.getElementById('loadingText').textContent = text;
   document.getElementById('loadingOverlay').classList.add('show');
@@ -2131,6 +2170,7 @@ document.getElementById('btnSave').addEventListener('click', saveCurrentOrder);
 document.getElementById('btnReset').addEventListener('click', () => {
   showModal('清空表單', '要清空目前輸入的內容嗎？', () => { resetForm(); renderAll(); showToast('已清空', 'success'); });
 });
+document.getElementById('orderConfirmOk').addEventListener('click', () => { document.getElementById('orderConfirmModal').classList.remove('show'); });
 document.getElementById('btnExportCSV').addEventListener('click', exportCSV);
 (function(){
   const q = document.getElementById('orderNoQuery');
