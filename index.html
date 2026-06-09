@@ -222,6 +222,9 @@ header .cloud-status.offline { background: rgba(220, 53, 69, 0.4); }
 .role-badge.admin { background: #1976d2; color: white; }
 .role-badge.customer { background: #2e8b57; color: white; }
 .role-badge.query { background: #6a4c93; color: white; }
+.status-badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 700; white-space: nowrap; }
+.status-badge.pending { background: #fdecc8; color: #8a6d1b; }
+.status-badge.completed { background: #d6f0e0; color: #1c7a47; }
 .role-menu { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
 .role-btn { width: 100%; padding: 16px; background: #f4f6f9; border: 2px solid #d8dfe9; border-radius: 10px; cursor: pointer; font-size: 17px; font-weight: 700; color: #555; font-family: inherit; transition: all 0.15s; text-align: left; }
 .role-btn:hover { background: #e9eef5; border-color: #1e3a5f; color: #1e3a5f; }
@@ -530,7 +533,9 @@ function isSuperAdmin() { return CURRENT_USER && CURRENT_USER.role === 'superadm
 function isAdmin() { return CURRENT_USER && (CURRENT_USER.role === 'admin' || CURRENT_USER.role === 'superadmin'); }
 function isCustomer() { return CURRENT_USER && CURRENT_USER.role === 'customer'; }
 function isQuery() { return CURRENT_USER && CURRENT_USER.role === 'query'; }
-function canSeeAllOrders() { return isAdmin(); }
+// 出餐部與管理人可安排座位/標記完成
+function canArrangeSeats() { return CURRENT_USER && (CURRENT_USER.role === 'superadmin' || CURRENT_USER.username === 'store'); }
+function canSeeAllOrders() { return isAdmin() || canArrangeSeats(); }
 
 function applyRoleClass() {
   document.body.classList.remove('role-customer','role-admin','role-superadmin','role-query');
@@ -957,6 +962,7 @@ function newOrderTemplate() {
     meals: { A: 0, B: 0, C: 0 },
     seats: { D_students: 0, D_teachers: 0, E_students: 0, E_teachers: 0 },
     selectedSeats: [],
+    status: 'pending',
     createdAt: null
   };
 }
@@ -1534,6 +1540,7 @@ async function saveCurrentOrder() {
     timeSlot: currentOrder.timeSlot,
     meals: currentOrder.meals, seats: currentOrder.seats,
     selectedSeats: currentOrder.selectedSeats,
+    status: currentOrder.status || 'pending',
     createdAt: currentOrder.createdAt || Date.now(),
     createdMs: currentOrder.createdMs || Date.now(),
     creatorIp: currentOrder.creatorIp || CLIENT_IP || '',
@@ -1577,8 +1584,8 @@ async function saveCurrentOrder() {
   }
   resetForm();
   switchTab('manage');
-  // 編輯後提示：請與張副總確認
-  if (wasEditing) {
+  // 編輯後提示：請與張副總確認（出餐部/管理人操作排位不顯示）
+  if (wasEditing && !canArrangeSeats()) {
     showModal('訂單已更動', '更動訂單，請與張副總確認。', () => {});
   }
 }
@@ -1627,7 +1634,7 @@ function canEditByDate(o) { return daysUntil(o.date) >= 3; }
 function editOrder(id) {
   const o = ORDERS.find(x => x.id === id);
   if (!o) return;
-  if (!canEditByDate(o)) {
+  if (!canArrangeSeats() && !canEditByDate(o)) {
     showToast(`此訂單用餐日為 ${o.date}，僅能於用餐日 3 天前修改，已逾期無法編輯。`, 'error');
     return;
   }
@@ -1693,14 +1700,18 @@ function renderOrdersList() {
   if (visible.length === 0) { container.innerHTML = '<div class="empty-state"><div class="icon">📭</div>' + (isCustomer() ? '你還沒有訂單，請到「新增訂單」建立' : '還沒有訂單') + '</div>'; return; }
   const sorted = [...visible].sort((a, b) => { if ((a.date||'') !== (b.date||'')) return (a.date||'').localeCompare(b.date||''); if (a.timeSlot !== b.timeSlot) return a.timeSlot.localeCompare(b.timeSlot); return (a.code || '').localeCompare(b.code || ''); });
   let html = `<div style="overflow-x:auto;"><table class="orders-table"><thead><tr>
-    <th>訂單號</th><th>代號</th><th>日期</th><th>時段</th><th>安親班</th><th>聯絡人</th><th>手機</th><th>學校電話</th><th>套餐(A/B/C)</th><th>座位(D/E)</th><th>老師</th><th>總人數</th><th>金額</th><th>操作</th>
+    <th>訂單號</th><th>代號</th><th>狀態</th><th>日期</th><th>時段</th><th>安親班</th><th>聯絡人</th><th>手機</th><th>學校電話</th><th>套餐(A/B/C)</th><th>座位(D/E)</th><th>老師</th><th>總人數</th><th>金額</th><th>操作</th>
   </tr></thead><tbody>`;
   sorted.forEach(o => {
     const slot = TIME_SLOTS.find(s => s.id === o.timeSlot);
     const color = getOrderColor(o.code);
+    const done = o.status === 'completed';
+    const statusBadge = done ? '<span class="status-badge completed">✅ 已完成</span>' : '<span class="status-badge pending">⏳ 待安排</span>';
+    const completeBtn = (!done && canArrangeSeats()) ? `<button class="btn btn-sm btn-success" data-action="complete" data-id="${o.id}">完成排位</button>` : '';
     html += `<tr>
       <td><strong style="font-family:monospace; font-size:14px;">${o.orderNo || '—'}</strong></td>
       <td><span class="order-code-tag" style="background:${color};">${o.code || '?'}</span></td>
+      <td>${statusBadge}</td>
       <td style="font-size:12px; white-space:nowrap;">${orderDateLabel(o)}</td>
       <td><span class="time-tag ${slot ? slot.tag : ''}">${o.timeSlot}</span></td>
       <td><strong>${escapeHtml(o.schoolName)}</strong></td>
@@ -1712,6 +1723,7 @@ function renderOrdersList() {
       <td>${totalPeople(o)}</td>
       <td><strong>$${calcTotal(o).toLocaleString()}</strong></td>
       <td class="actions">
+        ${completeBtn}
         <button class="btn btn-sm btn-info" data-action="print" data-id="${o.id}">列印</button>
         <button class="btn btn-sm btn-secondary" data-action="edit" data-id="${o.id}">編輯</button>
         <button class="btn btn-sm btn-danger" data-action="del" data-id="${o.id}">刪除</button>
@@ -1731,7 +1743,34 @@ function renderOrdersList() {
       if (btn.dataset.action === 'print') printOrder(id);
       else if (btn.dataset.action === 'edit') editOrder(id);
       else if (btn.dataset.action === 'del') deleteOrder(id);
+      else if (btn.dataset.action === 'complete') completeOrderSeating(id);
     });
+  });
+}
+
+// 出餐部/管理人：完成座位安排 → 狀態改為已完成
+function completeOrderSeating(id) {
+  if (!canArrangeSeats()) { showToast('只有出餐部或管理人可標記完成', 'error'); return; }
+  const o = ORDERS.find(x => x.id === id);
+  if (!o) return;
+  showModal('完成排位', `確定要將訂單 ${o.orderNo || o.code} 標記為「已完成排位」嗎？`, async () => {
+    const updated = { ...o, status: 'completed' };
+    delete updated.id;
+    if (useFirebase && db) {
+      try {
+        showLoading('更新中...');
+        await setDoc(doc(db, 'orders', id), updated);
+        showToast('已標記完成排位', 'success');
+        notifyLINE('update', { ...updated, id }, { actionLabel: '✅ 訂單已完成排位' });
+      } catch(e) { showToast('更新失敗：' + e.message, 'error'); }
+      finally { hideLoading(); }
+    } else {
+      const idx = ORDERS.findIndex(x => x.id === id);
+      if (idx >= 0) ORDERS[idx].status = 'completed';
+      saveLocal(); renderOrdersList();
+      showToast('已標記完成排位', 'success');
+      notifyLINE('update', { ...updated, id }, { actionLabel: '✅ 訂單已完成排位' });
+    }
   });
 }
 
