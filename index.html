@@ -37,7 +37,7 @@ header .cloud-status.offline { background: rgba(220, 53, 69, 0.4); }
 .form-group label { font-weight: 600; margin-bottom: 6px; font-size: 14px; color: #555; }
 .form-group label .required { color: #dc3545; margin-left: 2px; }
 .form-group input, .form-group select { padding: 11px 12px; border: 2px solid #d8dfe9; border-radius: 8px; font-size: 15px; transition: border-color 0.2s; font-family: inherit; }
-.form-group input:focus, .form-group select:focus { border-color: #1e3a5f; outline: none; }
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: #1e3a5f; outline: none; }
 
 .time-slots { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
 .time-slot-card { padding: 18px; border: 2px solid #d8dfe9; border-radius: 10px; cursor: pointer; text-align: center; background: white; transition: all 0.2s; }
@@ -70,6 +70,7 @@ header .cloud-status.offline { background: rgba(220, 53, 69, 0.4); }
 .seatmap-container { background: linear-gradient(180deg, #f8fafc, #f4f6f9); border-radius: 12px; padding: 20px; overflow-x: auto; border: 2px dashed #d8dfe9; }
 .seatmap-stage { background: linear-gradient(135deg, #35507a, #1e3a5f); color: white; text-align: center; padding: 8px; border-radius: 8px; margin-bottom: 22px; font-weight: 600; font-size: 13px; letter-spacing: 2px; }
 .tables-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px 18px; min-width: 720px; }
+.tables-grid-overview { grid-template-columns: repeat(2, 1fr) !important; grid-template-rows: repeat(4, auto); grid-auto-flow: column; min-width: 380px !important; }
 .long-table { display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .long-table .seats-row { display: flex; gap: 6px; flex-wrap: nowrap; justify-content: center; }
 .long-table .table-body { width: 100%; background: linear-gradient(180deg, #64748b, #475569); color: white; text-align: center; padding: 12px 6px; border-radius: 6px; font-weight: 700; font-size: 13px; box-shadow: 0 2px 4px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.2); letter-spacing: 1px; }
@@ -345,6 +346,7 @@ body.mode-range .summary-stat.day-stat { display: block; }
       <div class="form-group"><label>聯絡手機<span class="required">*</span></label><input type="tel" id="phone" placeholder="例：0912-345-678"></div>
       <div class="form-group"><label>學校電話<span class="required">*</span></label><input type="tel" id="schoolPhone" placeholder="例：02-2912-3456"></div>
     </div>
+    <div class="form-group" style="margin-top:12px;"><label>備註（可不填）</label><textarea id="remark" rows="2" placeholder="例：過敏需求、特殊安排、發票抬頭…" style="padding:11px 12px; border:2px solid #d8dfe9; border-radius:8px; font-size:15px; font-family:inherit; resize:vertical;"></textarea></div>
     <div id="orderCodeBox" style="margin-top:10px; font-size:13px; color:#888;"></div>
   </div>
 
@@ -968,7 +970,7 @@ function newOrderTemplate() {
     id: null, code: '', date: getDefaultDate(),
     dateMode: 'single', dateEnd: '', dateCount: 1, weekdays: [1,2,3,4,5], dates: [],
     orderNo: '',
-    schoolName: '', contact: '', phone: '', schoolPhone: '',
+    schoolName: '', contact: '', phone: '', schoolPhone: '', remark: '',
     timeSlot: '',
     meals: { A: 0, B: 0, C: 0 },
     seats: { D_students: 0, D_teachers: 0, E_students: 0, E_teachers: 0 },
@@ -1305,7 +1307,7 @@ function buildSeatmapDOM(timeSlot, dateFilter) {
   const wrap = document.createElement('div');
   wrap.className = 'seatmap-container';
   wrap.innerHTML = '<div class="seatmap-stage">━━━ 餐廳前方 / 取餐區 ━━━</div>';
-  const grid = document.createElement('div'); grid.className = 'tables-grid';
+  const grid = document.createElement('div'); grid.className = 'tables-grid tables-grid-overview';
   const taken = getSeatsTakenByTimeSlot(timeSlot, null, dateFilter);
   TABLE_CONFIG.forEach(table => {
     const tbl = document.createElement('div'); tbl.className = 'long-table';
@@ -1425,6 +1427,7 @@ function updateSummary() {
   currentOrder.contact = document.getElementById('contact').value.trim();
   currentOrder.phone = document.getElementById('phone').value.trim();
   const sp = document.getElementById('schoolPhone'); if (sp) currentOrder.schoolPhone = sp.value.trim();
+  const rm = document.getElementById('remark'); if (rm) currentOrder.remark = rm.value.trim();
   const code = currentOrder.code || generateNextCode();
   const box = document.getElementById('orderCodeBox');
   const noTxt = currentOrder.orderNo ? `　|　🔖 訂單號：<strong>${currentOrder.orderNo}</strong>` : '';
@@ -1507,6 +1510,7 @@ function notifyLINE(action, orderData, extra = {}) {
       contact: orderData.contact,
       phone: orderData.phone,
       schoolPhone: orderData.schoolPhone || '',
+      remark: orderData.remark || '無',
       date: orderData.date,
       dateLabel: dateLabel,
       timeSlot: orderData.timeSlot,
@@ -1572,7 +1576,7 @@ async function saveCurrentOrder() {
     code: currentOrder.code || generateNextCode(),
     orderNo: currentOrder.orderNo || generateOrderNo(),
     schoolName: currentOrder.schoolName, contact: currentOrder.contact, phone: currentOrder.phone,
-    schoolPhone: currentOrder.schoolPhone || '',
+    schoolPhone: currentOrder.schoolPhone || '', remark: currentOrder.remark || '',
     date: currentOrder.date || getDefaultDate(),
     dateMode: currentOrder.dateMode || 'single',
     dateEnd: currentOrder.dateMode === 'range' ? (currentOrder.dateEnd || currentOrder.date) : '',
@@ -1645,6 +1649,7 @@ function resetForm() {
   document.getElementById('contact').value = '';
   document.getElementById('phone').value = '';
   const sp = document.getElementById('schoolPhone'); if (sp) sp.value = '';
+  const rm = document.getElementById('remark'); if (rm) rm.value = '';
   document.getElementById('btnSave').textContent = '💾 儲存訂單';
 }
 
@@ -1692,6 +1697,7 @@ function editOrder(id) {
   document.getElementById('contact').value = o.contact;
   document.getElementById('phone').value = o.phone;
   const sp = document.getElementById('schoolPhone'); if (sp) sp.value = o.schoolPhone || '';
+  const rm = document.getElementById('remark'); if (rm) rm.value = o.remark || '';
   document.getElementById('btnSave').textContent = '💾 更新訂單';
   switchTab('new');
   renderAll();
@@ -1739,6 +1745,7 @@ function queryOrderByNo() {
     ${row('預約座位', seatArr.length?seatArr.join('、'):'無')}
     ${row('總人數', totalPeople(o) + ' 人')}
     ${row('應付金額', '$' + calcTotal(o).toLocaleString())}
+    ${o.remark ? row('備註', escapeHtml(o.remark)) : ''}
   </div>`;
 }
 
@@ -2137,7 +2144,8 @@ function showOrderConfirm(o) {
     + row('套餐', mealsArr.length ? mealsArr.join('、') : '無')
     + row('預約座位', seatArr.length ? seatArr.join('、') : '無')
     + row('總人數', totalPeople(o) + ' 人')
-    + row('應付金額', '$' + calcTotal(o).toLocaleString());
+    + row('應付金額', '$' + calcTotal(o).toLocaleString())
+    + (o.remark ? row('備註', escapeHtml(o.remark)) : '');
   document.getElementById('orderConfirmModal').classList.add('show');
 }
 
