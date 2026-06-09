@@ -1088,17 +1088,48 @@ function calcTotal(o) {
 function totalPeople(o) {
   return o.meals.A + o.meals.B + o.meals.C + o.seats.D_students + o.seats.D_teachers + o.seats.E_students + o.seats.E_teachers;
 }
+// 訂單是否涵蓋某日期（單日：當天；連續多日：符合星期的每一天）
+function orderCoversDate(o, date) {
+  if (!date) return true;
+  if (o.dateMode === 'range') {
+    if (Array.isArray(o.dates) && o.dates.length) return o.dates.includes(date);
+    if (o.date && o.dateEnd) {
+      if (date < o.date || date > o.dateEnd) return false;
+      const [y,m,d] = date.split('-').map(Number);
+      const wd = new Date(y, m-1, d).getDay();
+      const wds = (o.weekdays && o.weekdays.length) ? o.weekdays.map(Number) : [1,2,3,4,5];
+      return wds.includes(wd);
+    }
+    return (o.date || '') === date;
+  }
+  return (o.date || '') === date;
+}
+
 function getSeatsTakenByTimeSlot(timeSlot, excludeOrderId = null, dateFilter = null) {
   const taken = {};
-  ORDERS.forEach(order => {
-    if (order.id === excludeOrderId) return;
-    if (order.timeSlot !== timeSlot) return;
-    if (dateFilter && order.date !== dateFilter) return;
-    const color = getOrderColor(order.code);
-    order.selectedSeats.forEach((seatNum, position) => {
-      taken[seatNum] = { orderId: order.id, ownerId: order.ownerId, schoolName: order.schoolName, code: order.code, color, position: position + 1 };
+  let covering = ORDERS.filter(o => o.id !== excludeOrderId && o.timeSlot === timeSlot && (dateFilter ? orderCoversDate(o, dateFilter) : true));
+  // 穩定排序：建立時間 → 代號，確保自動配位結果一致
+  covering = covering.slice().sort((a,b) => ((a.createdMs||0)-(b.createdMs||0)) || ((a.code||'').localeCompare(b.code||'')));
+  // 第一輪：手動選定的座位
+  covering.forEach(order => {
+    (order.selectedSeats || []).forEach((seatNum, position) => {
+      taken[seatNum] = { orderId: order.id, ownerId: order.ownerId, schoolName: order.schoolName, code: order.code, color: getOrderColor(order.code), position: position + 1 };
     });
   });
+  // 第二輪：未手動選位的訂單（安親團體/連續多日）→ 依人數自動配最小可用座位（需指定日期）
+  if (dateFilter) {
+    covering.forEach(order => {
+      if (order.selectedSeats && order.selectedSeats.length) return;
+      const need = totalPeople(order);
+      let assigned = 0;
+      for (let seat = 1; seat <= TOTAL_SEATS && assigned < need; seat++) {
+        if (!taken[seat]) {
+          assigned++;
+          taken[seat] = { orderId: order.id, ownerId: order.ownerId, schoolName: order.schoolName, code: order.code, color: getOrderColor(order.code), position: assigned, auto: true };
+        }
+      }
+    });
+  }
   return taken;
 }
 
@@ -1904,9 +1935,10 @@ function setOverviewDate(date) {
 }
 
 function getDateStats(date) {
-  const orders = ORDERS.filter(o => o.date === date);
+  const orders = ORDERS.filter(o => orderCoversDate(o, date));
   const visible = canSeeAllOrders() ? orders : orders.filter(o => o.ownerId === (CURRENT_USER && CURRENT_USER.username));
-  const totalSeats = orders.reduce((sum, o) => sum + (o.selectedSeats ? o.selectedSeats.length : 0), 0);
+  let totalSeats = 0;
+  TIME_SLOTS.forEach(slot => { totalSeats += Object.keys(getSeatsTakenByTimeSlot(slot.id, null, date)).length; });
   const occupancy = totalSeats / (TOTAL_SEATS * TIME_SLOTS.length);
   return { count: visible.length, totalSeats, occupancy };
 }
@@ -1991,7 +2023,7 @@ function renderOverviewDetails() {
   TIME_SLOTS.forEach(slot => {
     const taken = getSeatsTakenByTimeSlot(slot.id, null, date);
     const usedCount = Object.keys(taken).length;
-    const allSlotOrders = ORDERS.filter(o => o.timeSlot === slot.id && o.date === date);
+    const allSlotOrders = ORDERS.filter(o => o.timeSlot === slot.id && orderCoversDate(o, date));
     const slotOrders = canSeeAllOrders() ? allSlotOrders : allSlotOrders.filter(o => o.ownerId === (CURRENT_USER && CURRENT_USER.username));
     const slotAmount = slotOrders.reduce((sum, o) => sum + calcTotal(o), 0);
     const div = document.createElement('div');
