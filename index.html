@@ -238,6 +238,8 @@ body.role-admin .superadmin-only { display: none !important; }
 body.identity-anqin .seatmap-only { display: none !important; }
 body.identity-anqin .summary-stat.seat-stat { display: none !important; }
 body.identity-anqin .tab-overview { display: none !important; }
+/* 安親團體：只能新增訂單，隱藏訂單管理（要修改改走訂單查詢） */
+body.identity-anqin .tab-manage { display: none !important; }
 /* 訂單查詢：只看訂單管理，可編輯查到的訂單 */
 body.role-query .tab-new { display: none !important; }
 body.role-query .tab-overview { display: none !important; }
@@ -328,7 +330,7 @@ body.mode-range .summary-stat.day-stat { display: block; }
 
 <div class="tabs no-print">
   <button class="tab-btn tab-new active" data-tab="new">📝 新增訂單</button>
-  <button class="tab-btn" data-tab="manage">📋 訂單管理</button>
+  <button class="tab-btn tab-manage" data-tab="manage">📋 訂單管理</button>
   <button class="tab-btn tab-overview" data-tab="overview">🪑 座位總覽</button>
   <button class="tab-btn superadmin-only" data-tab="logs">🕐 登入紀錄</button>
 </div>
@@ -1583,7 +1585,9 @@ async function saveCurrentOrder() {
     renderAll();
   }
   resetForm();
-  switchTab('manage');
+  // 安親團體沒有訂單管理頁，存單後留在新增訂單
+  if (CURRENT_USER && CURRENT_USER.username === 'anqin') { switchTab('new'); renderAll(); }
+  else switchTab('manage');
   // 編輯後提示：請與張副總確認（出餐部/管理人操作排位不顯示）
   if (wasEditing && !canArrangeSeats()) {
     showModal('訂單已更動', '更動訂單，請與張副總確認。', () => {});
