@@ -70,7 +70,11 @@ header .cloud-status.offline { background: rgba(220, 53, 69, 0.4); }
 .seatmap-container { background: linear-gradient(180deg, #f8fafc, #f4f6f9); border-radius: 12px; padding: 20px; overflow-x: auto; border: 2px dashed #d8dfe9; }
 .seatmap-stage { background: linear-gradient(135deg, #35507a, #1e3a5f); color: white; text-align: center; padding: 8px; border-radius: 8px; margin-bottom: 22px; font-weight: 600; font-size: 13px; letter-spacing: 2px; }
 .tables-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px 18px; min-width: 720px; }
-.tables-grid-overview { grid-template-columns: repeat(2, 1fr) !important; grid-template-rows: repeat(4, auto); grid-auto-flow: column; min-width: 380px !important; }
+/* 座位總覽：直立桌(座位在左右)，4 桌一排 */
+.tables-grid-vertical { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px 14px; min-width: 640px; }
+.vtable { display: flex; align-items: center; justify-content: center; gap: 6px; }
+.vtable .seats-col { display: flex; flex-direction: column; gap: 6px; }
+.vtable .table-body-v { writing-mode: vertical-rl; text-orientation: upright; background: linear-gradient(180deg, #64748b, #475569); color: white; padding: 16px 10px; border-radius: 6px; font-weight: 700; font-size: 13px; letter-spacing: 3px; box-shadow: 0 2px 4px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.2); align-self: stretch; display: flex; align-items: center; justify-content: center; }
 .long-table { display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .long-table .seats-row { display: flex; gap: 6px; flex-wrap: nowrap; justify-content: center; }
 .long-table .table-body { width: 100%; background: linear-gradient(180deg, #64748b, #475569); color: white; text-align: center; padding: 12px 6px; border-radius: 6px; font-weight: 700; font-size: 13px; box-shadow: 0 2px 4px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.2); letter-spacing: 1px; }
@@ -273,6 +277,7 @@ body.mode-range .summary-stat.day-stat { display: block; }
 
 @media (max-width: 768px) {
   .tables-grid { grid-template-columns: repeat(2, 1fr); min-width: 100%; gap: 24px 12px; }
+  .tables-grid-vertical { grid-template-columns: repeat(2, 1fr); min-width: 100%; gap: 18px 10px; }
   .summary-bar { flex-direction: column; align-items: stretch; }
   .summary-info { justify-content: space-between; }
 }
@@ -1307,19 +1312,17 @@ function buildSeatmapDOM(timeSlot, dateFilter) {
   const wrap = document.createElement('div');
   wrap.className = 'seatmap-container';
   wrap.innerHTML = '<div class="seatmap-stage">━━━ 餐廳前方 / 取餐區 ━━━</div>';
-  const grid = document.createElement('div'); grid.className = 'tables-grid tables-grid-overview';
+  const grid = document.createElement('div'); grid.className = 'tables-grid-vertical';
   const taken = getSeatsTakenByTimeSlot(timeSlot, null, dateFilter);
   TABLE_CONFIG.forEach(table => {
-    const tbl = document.createElement('div'); tbl.className = 'long-table';
+    const tbl = document.createElement('div'); tbl.className = 'vtable';
     const half1 = Math.ceil(table.count / 2);
-    const topRow = document.createElement('div'); topRow.className = 'seats-row';
-    for (let i = 0; i < half1; i++) topRow.appendChild(makeDisplaySeat(table.start + i, taken));
-    tbl.appendChild(topRow);
-    const body = document.createElement('div'); body.className = 'table-body'; body.textContent = `桌 ${table.id}`;
-    tbl.appendChild(body);
-    const botRow = document.createElement('div'); botRow.className = 'seats-row';
-    for (let i = half1; i < table.count; i++) botRow.appendChild(makeDisplaySeat(table.start + i, taken));
-    tbl.appendChild(botRow);
+    const leftCol = document.createElement('div'); leftCol.className = 'seats-col';
+    for (let i = 0; i < half1; i++) leftCol.appendChild(makeDisplaySeat(table.start + i, taken));
+    const body = document.createElement('div'); body.className = 'table-body-v'; body.textContent = `桌${table.id}`;
+    const rightCol = document.createElement('div'); rightCol.className = 'seats-col';
+    for (let i = half1; i < table.count; i++) rightCol.appendChild(makeDisplaySeat(table.start + i, taken));
+    tbl.appendChild(leftCol); tbl.appendChild(body); tbl.appendChild(rightCol);
     grid.appendChild(tbl);
   });
   wrap.appendChild(grid);
