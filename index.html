@@ -968,11 +968,12 @@ function formatDateChinese(dateStr) {
 const MEALS = [
   { code: 'A', name: '起司雞肉捲套餐', desc: '起司雞肉捲 + 2塊小雞塊 + 小薯條 + 冬瓜茶暢飲', price: 120, img: 'images/meal-a.jpg' },
   { code: 'B', name: '起司燻雞派套餐', desc: '起司燻雞派 + 2塊小雞塊 + 小薯條 + 冬瓜茶暢飲', price: 120, img: 'images/meal-b.jpg' },
-  { code: 'C', name: '招牌便當套餐', desc: '代訂便當（招牌便當）+ 冬瓜茶暢飲', price: 120, img: 'images/meal-c.jpg' }
+  { code: 'C', name: '招牌便當套餐', desc: '代訂便當（招牌便當）+ 冬瓜茶暢飲', price: 120, img: 'images/meal-c.jpg' },
+  { code: 'D', name: '米漢堡套餐', desc: '米漢堡（薑燒豬肉/日式牛丼）+ 2塊小雞塊 + 小薯條 + 冬瓜茶暢飲', price: 120, img: 'images/meal-d.jpg' }
 ];
 const SEAT_ONLY = [
-  { code: 'D', name: '預約座位區', desc: '每人 30 元清潔費（老師免費）', price: 30 },
-  { code: 'E', name: '預約座位區 + 冬瓜茶', desc: '每人 40 元（老師免費）', price: 40 }
+  { code: 'E', name: '預約座位區', desc: '每人 30 元清潔費（老師免費）', price: 30 },
+  { code: 'F', name: '預約座位區 + 冬瓜茶', desc: '每人 40 元（老師免費）', price: 40 }
 ];
 const COLORS = ['#1e3a5f','#2e8b57','#1976d2','#6a4c93','#e91e63','#00bcd4','#ff9800','#795548','#4caf50','#3f51b5','#ffc107','#009688','#673ab7','#f44336','#03a9f4'];
 
@@ -1773,7 +1774,7 @@ function renderOrdersList() {
   if (visible.length === 0) { container.innerHTML = '<div class="empty-state"><div class="icon">📭</div>' + (isCustomer() ? '你還沒有訂單，請到「新增訂單」建立' : '還沒有訂單') + '</div>'; return; }
   const sorted = [...visible].sort((a, b) => { if ((a.date||'') !== (b.date||'')) return (a.date||'').localeCompare(b.date||''); if (a.timeSlot !== b.timeSlot) return a.timeSlot.localeCompare(b.timeSlot); return (a.code || '').localeCompare(b.code || ''); });
   let html = `<div style="overflow-x:auto;"><table class="orders-table"><thead><tr>
-    <th>訂單號</th><th>代號</th><th>狀態</th><th>日期</th><th>時段</th><th>安親班</th><th>聯絡人</th><th>手機</th><th>學校電話</th><th>套餐(A/B/C)</th><th>座位(D/E)</th><th>老師</th><th>總人數</th><th>金額</th><th>操作</th>
+    <th>訂單號</th><th>代號</th><th>狀態</th><th>日期</th><th>時段</th><th>安親班</th><th>聯絡人</th><th>手機</th><th>學校電話</th><th>套餐(A/B/C/D)</th><th>座位(E/F)</th><th>老師</th><th>總人數</th><th>金額</th><th>操作</th>
   </tr></thead><tbody>`;
   sorted.forEach(o => {
     const slot = TIME_SLOTS.find(s => s.id === o.timeSlot);
