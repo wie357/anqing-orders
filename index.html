@@ -450,6 +450,14 @@ body.mode-range .summary-stat.day-stat { display: block; }
       <div class="summary-stat"><div class="label">總人數</div><div class="value" id="totalPeople">0</div></div>
       <div class="summary-stat seat-stat"><div class="label">已選座位</div><div class="value" id="selectedSeats">0</div></div>
       <div class="summary-stat day-stat"><div class="label">總次數(天)</div><div class="value" id="dayCount">1</div></div>
+      <div class="summary-stat"><div class="label">小計</div><div class="value" style="color:#666;">$<span id="subtotalAmount">0</span></div></div>
+      <div class="summary-stat" style="background:#fff4e6;">
+        <div class="label">🎁 優惠金額</div>
+        <div style="display:flex; align-items:center; gap:4px; justify-content:center; margin-top:4px;">
+          <span style="color:#666;">$</span>
+          <input type="number" id="discountInput" min="0" value="0" style="width:80px; padding:4px 6px; border:1px solid #f0ad4e; border-radius:4px; font-size:14px; text-align:right;">
+        </div>
+      </div>
       <div class="summary-stat total"><div class="label">應付總額</div><div class="value">$<span id="totalAmount">0</span></div></div>
     </div>
     <div class="summary-actions">
@@ -998,6 +1006,8 @@ let editingOrderId = null;
       // 重置備註人數 input
       const ncInp = document.getElementById('noteCountInput');
       if (ncInp) ncInp.value = 0;
+      const dcInp = document.getElementById('discountInput');
+      if (dcInp) dcInp.value = 0;
 let currentOrder = newOrderTemplate();
 let db = null;
 let firstLoad = true;
@@ -1014,6 +1024,7 @@ function newOrderTemplate() {
     meals: { A: 0, B: 0, C: 0, D: 0 },
     seats: { E_students: 0, E_teachers: 0, F_students: 0, F_teachers: 0 },
     noteCount: 0,
+    discount: 0,
     selectedSeats: [],
     status: 'pending',
     createdAt: null
@@ -1135,8 +1146,11 @@ function calcTotalPerDay(o) {
   const s = o.seats || {};
   return (m.A||0)*120 + (m.B||0)*120 + (m.C||0)*120 + (m.D||0)*120 + (s.E_students||0)*30 + (s.F_students||0)*40 + (o.noteCount||0)*120;
 }
-function calcTotal(o) {
+function calcSubtotal(o) {
   return calcTotalPerDay(o) * orderDateCount(o);
+}
+function calcTotal(o) {
+  return Math.max(0, calcSubtotal(o) - (o.discount || 0));
 }
 function totalPeople(o) {
   const m = o.meals || {};
@@ -1521,9 +1535,16 @@ function updateSummary() {
     const ncAmt = document.getElementById('noteCountAmount');
     if (ncAmt) ncAmt.textContent = '$' + (currentOrder.noteCount * 120).toLocaleString();
   }
+  // 同步優惠金額 input
+  const dcInput = document.getElementById('discountInput');
+  if (dcInput) {
+    currentOrder.discount = Math.max(0, parseInt(dcInput.value) || 0);
+  }
   document.getElementById('totalPeople').textContent = totalPeople(currentOrder);
   document.getElementById('selectedSeats').textContent = currentOrder.selectedSeats.length;
   const dc = document.getElementById('dayCount'); if (dc) dc.textContent = orderDateCount(currentOrder);
+  const subEl = document.getElementById('subtotalAmount');
+  if (subEl) subEl.textContent = calcSubtotal(currentOrder).toLocaleString();
   document.getElementById('totalAmount').textContent = calcTotal(currentOrder).toLocaleString();
   currentOrder.schoolName = document.getElementById('schoolName').value.trim();
   currentOrder.contact = document.getElementById('contact').value.trim();
@@ -1567,7 +1588,9 @@ function notifyLINE(action, orderData, extra = {}) {
   const s = orderData.seats || { E_students: 0, E_teachers: 0, F_students: 0, F_teachers: 0 };
   const dayCount = (orderData.dateMode === 'range' && orderData.dateCount > 0) ? orderData.dateCount : 1;
   const totalPeople = (m.A||0)+(m.B||0)+(m.C||0)+(m.D||0)+(s.E_students||0)+(s.E_teachers||0)+(s.F_students||0)+(s.F_teachers||0)+(orderData.noteCount||0);
-  const totalAmount = ((m.A||0)*120+(m.B||0)*120+(m.C||0)*120+(m.D||0)*120+(s.E_students||0)*30+(s.F_students||0)*40+(orderData.noteCount||0)*120) * dayCount;
+  const subtotalAmount = ((m.A||0)*120+(m.B||0)*120+(m.C||0)*120+(m.D||0)*120+(s.E_students||0)*30+(s.F_students||0)*40+(orderData.noteCount||0)*120) * dayCount;
+  const discountAmount = orderData.discount || 0;
+  const totalAmount = Math.max(0, subtotalAmount - discountAmount);
   // 套餐摘要（只顯示有點的）
   const mealsList = [];
   if (m.A) mealsList.push(`A起司雞肉捲×${m.A}`);
@@ -1625,6 +1648,8 @@ function notifyLINE(action, orderData, extra = {}) {
       ownerId: orderData.ownerId,
       // 預先計算的彙整欄位（讓 Make.com 範本更簡單）
       totalPeople: totalPeople,
+      subtotalAmount: subtotalAmount,
+      discountAmount: discountAmount,
       totalAmount: totalAmount,
       mealsSummary: mealsSummary,
       seatsSummary: seatsSummary,
@@ -1806,9 +1831,12 @@ function editOrder(id) {
   if (currentOrder.seats.F_students === undefined) currentOrder.seats.F_students = 0;
   if (currentOrder.seats.F_teachers === undefined) currentOrder.seats.F_teachers = 0;
   if (currentOrder.noteCount === undefined) currentOrder.noteCount = 0;
+  if (currentOrder.discount === undefined) currentOrder.discount = 0;
   // 同步到 UI
   const ncInput = document.getElementById('noteCountInput');
   if (ncInput) ncInput.value = currentOrder.noteCount || 0;
+  const dcInput = document.getElementById('discountInput');
+  if (dcInput) dcInput.value = currentOrder.discount || 0;
   editingOrderId = id;
   document.getElementById('schoolName').value = o.schoolName;
   document.getElementById('contact').value = o.contact;
@@ -1865,6 +1893,7 @@ function queryOrderByNo() {
     ${row('套餐', mealsArr.length?mealsArr.join('、'):'無')}
     ${row('預約座位', seatArr.length?seatArr.join('、'):'無')}
     ${row('總人數', totalPeople(o) + ' 人')}
+    ${(o.discount||0) > 0 ? row('小計', '$' + calcSubtotal(o).toLocaleString()) + row('🎁 優惠金額', '-$' + (o.discount||0).toLocaleString()) : ''}
     ${row('應付金額', '$' + calcTotal(o).toLocaleString())}
     ${o.remark ? row('備註', escapeHtml(o.remark)) : ''}
   </div>`;
@@ -1984,6 +2013,10 @@ function generateOrderPrintHTML(o) {
     <div class="info-row"><span class="label">用餐時段</span><span><strong>${o.timeSlot}</strong></span></div>
     <div class="info-row"><span class="label">總人數</span><span>${totalPeople(o)} 人</span></div>
     <table><thead><tr><th>項目</th><th>數量</th><th>單價</th><th>小計</th></tr></thead><tbody>${mealsHtml}</tbody></table>
+    ${(o.discount||0) > 0 ? `
+    <div style="text-align:right; margin-top:10px; font-size:14px; color:#666;">小計：$${calcSubtotal(o).toLocaleString()}</div>
+    <div style="text-align:right; font-size:14px; color:#d97706;">🎁 優惠金額：-$${(o.discount||0).toLocaleString()}</div>
+    ` : ''}
     <div class="total-line">應付總額：$${calcTotal(o).toLocaleString()}</div>
     <h3 style="margin-top:18px; color:#1e3a5f;">📍 座位位置（${o.timeSlot}）</h3>
     <p style="font-size:13px; color:#666; margin-bottom:10px;">您的座位以 <strong style="color:${color};">${o.code}1, ${o.code}2 ...</strong> 標示</p>
@@ -2056,9 +2089,9 @@ function printAll() {
 function exportCSV() {
   const visible = getVisibleOrders();
   if (visible.length === 0) { showToast('沒有訂單可匯出', 'error'); return; }
-  const headers = ['訂單號','代號','訂單編號','建立時間','日期','結束日','指定星期','總次數','時段','安親班','聯絡人','手機','學校電話','A套餐','B套餐','C套餐','D套餐','備註人數','E學生','E老師','F學生','F老師','總人數','金額','座位編號'];
+  const headers = ['訂單號','代號','訂單編號','建立時間','日期','結束日','指定星期','總次數','時段','安親班','聯絡人','手機','學校電話','A套餐','B套餐','C套餐','D套餐','備註人數','E學生','E老師','F學生','F老師','總人數','小計','優惠金額','應付總額','座位編號'];
   const sorted = [...visible].sort((a, b) => (a.date||'').localeCompare(b.date||'') || a.timeSlot.localeCompare(b.timeSlot) || (a.code||'').localeCompare(b.code||''));
-  const rows = sorted.map(o => [o.orderNo || '', o.code, o.id, new Date(o.createdAt).toLocaleString('zh-TW'), o.date || '', (o.dateMode==='range'?(o.dateEnd||''):''), (o.dateMode==='range'?weekdaysLabel(o.weekdays):''), orderDateCount(o), o.timeSlot, o.schoolName, o.contact, o.phone, o.schoolPhone || '', (o.meals||{}).A||0, (o.meals||{}).B||0, (o.meals||{}).C||0, (o.meals||{}).D||0, o.noteCount||0, (o.seats||{}).E_students||0, (o.seats||{}).E_teachers||0, (o.seats||{}).F_students||0, (o.seats||{}).F_teachers||0, totalPeople(o), calcTotal(o), o.selectedSeats.join(' ')]);
+  const rows = sorted.map(o => [o.orderNo || '', o.code, o.id, new Date(o.createdAt).toLocaleString('zh-TW'), o.date || '', (o.dateMode==='range'?(o.dateEnd||''):''), (o.dateMode==='range'?weekdaysLabel(o.weekdays):''), orderDateCount(o), o.timeSlot, o.schoolName, o.contact, o.phone, o.schoolPhone || '', (o.meals||{}).A||0, (o.meals||{}).B||0, (o.meals||{}).C||0, (o.meals||{}).D||0, o.noteCount||0, (o.seats||{}).E_students||0, (o.seats||{}).E_teachers||0, (o.seats||{}).F_students||0, (o.seats||{}).F_teachers||0, totalPeople(o), calcSubtotal(o), (o.discount||0), calcTotal(o), o.selectedSeats.join(' ')]);
   const csv = '﻿' + [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
@@ -2317,6 +2350,7 @@ document.getElementById('btnAutoArrange')?.addEventListener('click', autoArrange
     updateSummary();
   });
   document.getElementById('noteCountInput')?.addEventListener('input', updateSummary);
+  document.getElementById('discountInput')?.addEventListener('input', updateSummary);
   document.getElementById('btnSave').addEventListener('click', saveCurrentOrder);
 document.getElementById('btnReset').addEventListener('click', () => {
   showModal('清空表單', '要清空目前輸入的內容嗎？', () => { resetForm(); renderAll(); showToast('已清空', 'success'); });
