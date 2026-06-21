@@ -1715,6 +1715,8 @@ async function saveCurrentOrder() {
     dates: currentOrder.dateMode === 'range' ? (currentOrder.dates || []) : [],
     timeSlot: currentOrder.timeSlot,
     meals: currentOrder.meals, seats: currentOrder.seats,
+    noteCount: currentOrder.noteCount || 0,
+    discount: currentOrder.discount || 0,
     selectedSeats: currentOrder.selectedSeats,
     status: currentOrder.status || 'pending',
     createdAt: currentOrder.createdAt || Date.now(),
