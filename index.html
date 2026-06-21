@@ -419,6 +419,11 @@ body.mode-range .summary-stat.day-stat { display: block; }
   <div class="section seatmap-only">
     <h2>⑥ 座位選擇</h2>
     <p style="font-size: 13px; color: #555; margin-bottom: 10px;" id="seatHint">請先選擇用餐時段。</p>
+    <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 12px; flex-wrap: wrap;">
+      <button type="button" class="btn btn-primary" id="btnAutoArrange" style="padding: 8px 14px; font-size: 13px;">🎯 自動順序排列</button>
+      <button type="button" class="btn btn-secondary" id="btnClearSeats" style="padding: 8px 14px; font-size: 13px;">🧹 清除選位</button>
+      <span style="font-size: 12px; color: #888;">輸入人數後按「自動順序排列」會由前到後填滿可用座位</span>
+    </div>
     <div class="legend">
       <div class="legend-item"><div class="legend-dot" style="background:white;"></div>可選（顯示座位編號）</div>
       <div class="legend-item"><div class="legend-dot" style="background:#1e3a5f; border-color:#16304f;"></div>本次選取（顯示我的順序）</div>
@@ -1313,6 +1318,43 @@ function makeSeat(seatNum, taken, interactive, previewCode) {
   }
   return el;
 }
+// ==================== 自動排列座位 ====================
+function autoArrangeSeats() {
+  if (!currentOrder.timeSlot) {
+    showToast('請先選擇用餐時段', 'error');
+    return;
+  }
+  const need = totalPeople(currentOrder);
+  if (need <= 0) {
+    showToast('請先填寫套餐或座位區人數', 'error');
+    return;
+  }
+  const taken = getSeatsTakenByTimeSlot(currentOrder.timeSlot, editingOrderId, currentOrder.date);
+  const picked = [];
+  for (let seat = 1; seat <= TOTAL_SEATS && picked.length < need; seat++) {
+    if (!taken[seat]) picked.push(seat);
+  }
+  currentOrder.selectedSeats = picked;
+  renderSeatmap();
+  updateSummary();
+  if (picked.length < need) {
+    showToast(`只剩 ${picked.length} 個座位可選，需要 ${need} 個。請改時段或減少人數。`, 'error');
+  } else {
+    showToast(`✅ 已自動排上 ${picked.length} 個座位（${picked[0]}~${picked[picked.length-1]}）`, 'success');
+  }
+}
+
+function clearSelectedSeats() {
+  if (!currentOrder.selectedSeats || currentOrder.selectedSeats.length === 0) {
+    showToast('目前沒有已選座位', 'info');
+    return;
+  }
+  currentOrder.selectedSeats = [];
+  renderSeatmap();
+  updateSummary();
+  showToast('已清除全部選位', 'success');
+}
+
 function makeDisplaySeat(seatNum, taken) {
   const el = document.createElement('div');
   el.className = 'seat';
@@ -2205,7 +2247,9 @@ function renderAll() { renderDatePicker(); renderTimeSlots(); renderMeals(); ren
 
 // ==================== 初始化 ====================
 document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
-document.getElementById('btnSave').addEventListener('click', saveCurrentOrder);
+document.getElementById('btnAutoArrange')?.addEventListener('click', autoArrangeSeats);
+  document.getElementById('btnClearSeats')?.addEventListener('click', clearSelectedSeats);
+  document.getElementById('btnSave').addEventListener('click', saveCurrentOrder);
 document.getElementById('btnReset').addEventListener('click', () => {
   showModal('清空表單', '要清空目前輸入的內容嗎？', () => { resetForm(); renderAll(); showToast('已清空', 'success'); });
 });
