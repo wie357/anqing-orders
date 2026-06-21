@@ -2207,25 +2207,64 @@ function renderOverviewDetails() {
     const allSlotOrders = ORDERS.filter(o => o.timeSlot === slot.id && orderCoversDate(o, date));
     const slotOrders = canSeeAllOrders() ? allSlotOrders : allSlotOrders.filter(o => o.ownerId === (CURRENT_USER && CURRENT_USER.username));
     const slotAmount = slotOrders.reduce((sum, o) => sum + calcTotal(o), 0);
+    const slotNoteCount = slotOrders.reduce((sum, o) => sum + (o.noteCount || 0), 0);
+    const slotTotalPeople = slotOrders.reduce((sum, o) => sum + totalPeople(o), 0);
     const div = document.createElement('div');
     div.className = 'overview-time';
     div.innerHTML = `<h3><span class="time-tag ${slot.tag}">${slot.label}</span></h3>
       <div class="stats">
         <div>訂單：<strong>${slotOrders.length}</strong> 筆</div>
         <div>已用座位：<strong>${usedCount}</strong> / ${TOTAL_SEATS}</div>
-        <div>剩餘：<strong style="color:${TOTAL_SEATS-usedCount > 10 ? '#2e8b57' : '#dc3545'};">${TOTAL_SEATS-usedCount}</strong></div>
+        <div>剩餘座位：<strong style="color:${TOTAL_SEATS-usedCount > 10 ? '#2e8b57' : '#dc3545'};">${TOTAL_SEATS-usedCount}</strong></div>
+        <div style="background:#fff4e6; padding:2px 8px; border-radius:6px; border:1px dashed #f0ad4e;">📝 備註人數：<strong style="color:#8a5a00;">${slotNoteCount}</strong> 人（不佔座位）</div>
+        <div>總人數：<strong>${slotTotalPeople}</strong> 人</div>
         <div>金額：<strong style="color:#1e3a5f;">$${slotAmount.toLocaleString()}</strong></div>
       </div>`;
     div.appendChild(buildSeatmapDOM(slot.id, date));
     if (slotOrders.length > 0) {
-      const sList = document.createElement('div'); sList.className = 'school-list';
-      slotOrders.sort((a,b) => (a.code||'').localeCompare(b.code||'')).forEach(o => {
-        const c = getOrderColor(o.code);
-        const chip = document.createElement('div'); chip.className = 'school-chip';
-        chip.innerHTML = `<span class="code-dot" style="background:${c};">${o.code}</span><span>${escapeHtml(o.schoolName)} (${totalPeople(o)}人)</span>`;
-        sList.appendChild(chip);
-      });
-      div.appendChild(sList);
+      // 訂單詳情表格
+      const sorted = slotOrders.slice().sort((a,b) => (a.code||'').localeCompare(b.code||''));
+      const detail = document.createElement('div');
+      detail.style.cssText = 'margin-top:14px; overflow-x:auto;';
+      detail.innerHTML = `<div style="font-weight:600; margin-bottom:6px; font-size:14px; color:#555;">📋 當日該時段訂單明細</div>
+        <table style="width:100%; border-collapse:collapse; font-size:13px;">
+          <thead><tr style="background:#e9eef5;">
+            <th style="padding:6px; border:1px solid #ddd;">代號</th>
+            <th style="padding:6px; border:1px solid #ddd;">訂單號</th>
+            <th style="padding:6px; border:1px solid #ddd;">安親班</th>
+            <th style="padding:6px; border:1px solid #ddd;">聯絡人</th>
+            <th style="padding:6px; border:1px solid #ddd;">手機</th>
+            <th style="padding:6px; border:1px solid #ddd;">A/B/C/D 套餐</th>
+            <th style="padding:6px; border:1px solid #ddd;">E/F 座位</th>
+            <th style="padding:6px; border:1px solid #ddd;">備註</th>
+            <th style="padding:6px; border:1px solid #ddd;">總人數</th>
+            <th style="padding:6px; border:1px solid #ddd;">金額</th>
+          </tr></thead>
+          <tbody>${sorted.map(o => {
+            const c = getOrderColor(o.code);
+            const m0 = o.meals || {}; const s0 = o.seats || {};
+            const mealsStr = `${m0.A||0}/${m0.B||0}/${m0.C||0}/${m0.D||0}`;
+            const seatsStr = `${(s0.E_students||0)+(s0.E_teachers||0)}/${(s0.F_students||0)+(s0.F_teachers||0)}`;
+            return `<tr>
+              <td style="padding:6px; border:1px solid #ddd; text-align:center;"><span class="order-code-tag" style="background:${c}; width:28px; height:28px; line-height:24px; font-size:13px;">${o.code||'?'}</span></td>
+              <td style="padding:6px; border:1px solid #ddd; font-family:monospace;"><strong>${o.orderNo||'—'}</strong></td>
+              <td style="padding:6px; border:1px solid #ddd;"><strong>${escapeHtml(o.schoolName||'—')}</strong></td>
+              <td style="padding:6px; border:1px solid #ddd;">${escapeHtml(o.contact||'—')}</td>
+              <td style="padding:6px; border:1px solid #ddd;">${escapeHtml(o.phone||'—')}</td>
+              <td style="padding:6px; border:1px solid #ddd; text-align:center;">${mealsStr}</td>
+              <td style="padding:6px; border:1px solid #ddd; text-align:center;">${seatsStr}</td>
+              <td style="padding:6px; border:1px solid #ddd; text-align:center;">${o.noteCount||0}</td>
+              <td style="padding:6px; border:1px solid #ddd; text-align:center;"><strong>${totalPeople(o)}</strong></td>
+              <td style="padding:6px; border:1px solid #ddd; text-align:right;"><strong>$${calcTotal(o).toLocaleString()}</strong></td>
+            </tr>`;
+          }).join('')}</tbody>
+        </table>`;
+      div.appendChild(detail);
+    } else {
+      const empty = document.createElement('div');
+      empty.style.cssText = 'padding:16px; text-align:center; color:#999; background:#f9f9f9; border-radius:6px; margin-top:10px;';
+      empty.textContent = '此時段無訂單';
+      div.appendChild(empty);
     }
     container.appendChild(div);
   });
