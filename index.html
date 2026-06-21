@@ -1142,6 +1142,14 @@ function getSeatsTakenByTimeSlot(timeSlot, excludeOrderId = null, dateFilter = n
   let covering = ORDERS.filter(o => o.id !== excludeOrderId && o.timeSlot === timeSlot && (dateFilter ? orderCoversDate(o, dateFilter) : true));
   // 穩定排序：建立時間 → 代號，確保自動配位結果一致
   covering = covering.slice().sort((a,b) => ((a.createdMs||0)-(b.createdMs||0)) || ((a.code||'').localeCompare(b.code||'')));
+  // 編輯模式：如果編輯中訂單「原本」就在此時段+日期，預留它的人數，避免其他訂單自動配位搶走
+  let reservedForEditing = 0;
+  if (excludeOrderId) {
+    const editingOrder = ORDERS.find(o => o.id === excludeOrderId);
+    if (editingOrder && editingOrder.timeSlot === timeSlot && (!dateFilter || orderCoversDate(editingOrder, dateFilter))) {
+      reservedForEditing = totalPeople(editingOrder);
+    }
+  }
   // 第一輪：手動選定的座位
   covering.forEach(order => {
     (order.selectedSeats || []).forEach((seatNum, position) => {
@@ -1149,14 +1157,18 @@ function getSeatsTakenByTimeSlot(timeSlot, excludeOrderId = null, dateFilter = n
     });
   });
   // 第二輪：未手動選位的訂單（安親團體/連續多日）→ 依人數自動配最小可用座位（需指定日期）
+  // 編輯模式下：為編輯訂單預留 reservedForEditing 個座位
   if (dateFilter) {
+    const autoCapacity = Math.max(0, TOTAL_SEATS - Object.keys(taken).length - reservedForEditing);
+    let autoUsedTotal = 0;
     covering.forEach(order => {
       if (order.selectedSeats && order.selectedSeats.length) return;
       const need = totalPeople(order);
       let assigned = 0;
-      for (let seat = 1; seat <= TOTAL_SEATS && assigned < need; seat++) {
+      for (let seat = 1; seat <= TOTAL_SEATS && assigned < need && autoUsedTotal < autoCapacity; seat++) {
         if (!taken[seat]) {
           assigned++;
+          autoUsedTotal++;
           taken[seat] = { orderId: order.id, ownerId: order.ownerId, schoolName: order.schoolName, code: order.code, color: getOrderColor(order.code), position: assigned, auto: true };
         }
       }
