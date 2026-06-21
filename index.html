@@ -414,6 +414,16 @@ body.mode-range .summary-stat.day-stat { display: block; }
     <h2>⑤ 預約座位區（不另購套餐者）</h2>
     <p style="font-size: 13px; color: #888; margin-bottom: 12px;">老師陪同入場免清潔費，但仍需佔用座位。</p>
     <div class="meal-grid" id="seatOnlyOptions"></div>
+    <div style="margin-top: 16px; padding: 14px; background: #fff4e6; border: 2px dashed #f0ad4e; border-radius: 8px;">
+      <div style="font-weight: 600; color: #8a5a00; margin-bottom: 6px;">📝 備註人數（免安排座位區）</div>
+      <div style="font-size: 12px; color: #666; margin-bottom: 10px;">此欄位人數不會分配座位，但會計入總人數與金額（每人 $120）</div>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <button type="button" class="qty-btn" id="noteCountDec">−</button>
+        <input type="number" class="qty-input" id="noteCountInput" min="0" value="0" style="width: 80px; text-align: center;">
+        <button type="button" class="qty-btn" id="noteCountInc">+</button>
+        <span style="color: #888;">人 × $120 = <strong id="noteCountAmount" style="color: #1e3a5f;">$0</strong></span>
+      </div>
+    </div>
   </div>
 
   <div class="section seatmap-only">
@@ -985,6 +995,9 @@ const COLORS = ['#1e3a5f','#2e8b57','#1976d2','#6a4c93','#e91e63','#00bcd4','#ff
 // ==================== 狀態 ====================
 let ORDERS = [];
 let editingOrderId = null;
+      // 重置備註人數 input
+      const ncInp = document.getElementById('noteCountInput');
+      if (ncInp) ncInp.value = 0;
 let currentOrder = newOrderTemplate();
 let db = null;
 let firstLoad = true;
@@ -998,8 +1011,9 @@ function newOrderTemplate() {
     orderNo: '',
     schoolName: '', contact: '', phone: '', schoolPhone: '', remark: '',
     timeSlot: '',
-    meals: { A: 0, B: 0, C: 0 },
-    seats: { D_students: 0, D_teachers: 0, E_students: 0, E_teachers: 0 },
+    meals: { A: 0, B: 0, C: 0, D: 0 },
+    seats: { E_students: 0, E_teachers: 0, F_students: 0, F_teachers: 0 },
+    noteCount: 0,
     selectedSeats: [],
     status: 'pending',
     createdAt: null
@@ -1117,13 +1131,21 @@ function getOrderColor(code) {
 
 // ==================== 計算 ====================
 function calcTotalPerDay(o) {
-  return o.meals.A * 120 + o.meals.B * 120 + o.meals.C * 120 + o.seats.D_students * 30 + o.seats.E_students * 40;
+  const m = o.meals || {};
+  const s = o.seats || {};
+  return (m.A||0)*120 + (m.B||0)*120 + (m.C||0)*120 + (m.D||0)*120 + (s.E_students||0)*30 + (s.F_students||0)*40 + (o.noteCount||0)*120;
 }
 function calcTotal(o) {
   return calcTotalPerDay(o) * orderDateCount(o);
 }
 function totalPeople(o) {
-  return o.meals.A + o.meals.B + o.meals.C + o.seats.D_students + o.seats.D_teachers + o.seats.E_students + o.seats.E_teachers;
+  const m = o.meals || {};
+  const s = o.seats || {};
+  return (m.A||0)+(m.B||0)+(m.C||0)+(m.D||0)+(s.E_students||0)+(s.E_teachers||0)+(s.F_students||0)+(s.F_teachers||0)+(o.noteCount||0);
+}
+// 需要安排座位的人數（總人數扣掉備註人數）
+function seatsNeeded(o) {
+  return Math.max(0, totalPeople(o) - (o.noteCount || 0));
 }
 // 訂單是否涵蓋某日期（單日：當天；連續多日：符合星期的每一天）
 function orderCoversDate(o, date) {
@@ -1152,7 +1174,7 @@ function getSeatsTakenByTimeSlot(timeSlot, excludeOrderId = null, dateFilter = n
   if (excludeOrderId) {
     const editingOrder = ORDERS.find(o => o.id === excludeOrderId);
     if (editingOrder && editingOrder.timeSlot === timeSlot && (!dateFilter || orderCoversDate(editingOrder, dateFilter))) {
-      reservedForEditing = totalPeople(editingOrder);
+      reservedForEditing = seatsNeeded(editingOrder);
     }
   }
   // 第一輪：手動選定的座位
@@ -1168,7 +1190,7 @@ function getSeatsTakenByTimeSlot(timeSlot, excludeOrderId = null, dateFilter = n
     let autoUsedTotal = 0;
     covering.forEach(order => {
       if (order.selectedSeats && order.selectedSeats.length) return;
-      const need = totalPeople(order);
+      const need = seatsNeeded(order);
       let assigned = 0;
       for (let seat = 1; seat <= TOTAL_SEATS && assigned < need && autoUsedTotal < autoCapacity; seat++) {
         if (!taken[seat]) {
@@ -1263,9 +1285,9 @@ function renderSeatmap() {
   container.innerHTML = '';
   const hint = document.getElementById('seatHint');
   if (!currentOrder.timeSlot) { hint.textContent = '⚠️ 請先選擇用餐時段。'; hint.style.color = '#dc3545'; return; }
-  const need = totalPeople(currentOrder);
+  const need = seatsNeeded(currentOrder);
   const slotLabel = TIME_SLOTS.find(s => s.id === currentOrder.timeSlot).label;
-  hint.innerHTML = `📍 用餐時段：<strong>${slotLabel}</strong> · 需要座位：<strong>${need}</strong> · 已選：<strong>${currentOrder.selectedSeats.length}</strong>`;
+  hint.innerHTML = `📍 用餐時段：<strong>${slotLabel}</strong> · 需要座位：<strong>${need}</strong>（總人數 ${totalPeople(currentOrder)}，含備註人數 ${currentOrder.noteCount||0}） · 已選：<strong>${currentOrder.selectedSeats.length}</strong>`;
   hint.style.color = (need === currentOrder.selectedSeats.length && need > 0) ? '#2e8b57' : '#555';
   const taken = getSeatsTakenByTimeSlot(currentOrder.timeSlot, editingOrderId, currentOrder.date);
   const previewCode = currentOrder.code || generateNextCode();
@@ -1324,7 +1346,7 @@ function autoArrangeSeats() {
     showToast('請先選擇用餐時段', 'error');
     return;
   }
-  const need = totalPeople(currentOrder);
+  const need = seatsNeeded(currentOrder);
   if (need <= 0) {
     showToast('請先填寫套餐或座位區人數', 'error');
     return;
@@ -1492,6 +1514,13 @@ function renderDatePicker() {
   updateRangeCount();
 }
 function updateSummary() {
+  // 同步備註人數 input
+  const ncInput = document.getElementById('noteCountInput');
+  if (ncInput) {
+    currentOrder.noteCount = Math.max(0, parseInt(ncInput.value) || 0);
+    const ncAmt = document.getElementById('noteCountAmount');
+    if (ncAmt) ncAmt.textContent = '$' + (currentOrder.noteCount * 120).toLocaleString();
+  }
   document.getElementById('totalPeople').textContent = totalPeople(currentOrder);
   document.getElementById('selectedSeats').textContent = currentOrder.selectedSeats.length;
   const dc = document.getElementById('dayCount'); if (dc) dc.textContent = orderDateCount(currentOrder);
@@ -1524,32 +1553,35 @@ function validateOrder() {
   }
   const need = totalPeople(currentOrder);
   if (need === 0) return '請至少訂購一份套餐或座位';
+  const seatNeed = seatsNeeded(currentOrder);
   // 安親團體 或 連續多日 不選座位（由現場安排），跳過座位數檢查
   const noSeatSelect = (CURRENT_USER && CURRENT_USER.username === 'anqin') || isRange;
-  if (!noSeatSelect && currentOrder.selectedSeats.length !== need) return `已選座位 ${currentOrder.selectedSeats.length} 個，需要 ${need} 個，請對應人數選滿`;
+  if (!noSeatSelect && currentOrder.selectedSeats.length !== seatNeed) return `已選座位 ${currentOrder.selectedSeats.length} 個，需要 ${seatNeed} 個（總人數 ${need} 扣掉備註人數 ${currentOrder.noteCount||0}），請對應人數選滿`;
   return null;
 }
 
 // ==================== LINE 通知 ====================
 const MAKE_WEBHOOK_URL = 'https://hook.eu1.make.com/p4pzicwbu2ysx89z6owom8q5wrsnmxum';
 function notifyLINE(action, orderData, extra = {}) {
-  const m = orderData.meals || { A: 0, B: 0, C: 0 };
-  const s = orderData.seats || { D_students: 0, D_teachers: 0, E_students: 0, E_teachers: 0 };
+  const m = orderData.meals || { A: 0, B: 0, C: 0, D: 0 };
+  const s = orderData.seats || { E_students: 0, E_teachers: 0, F_students: 0, F_teachers: 0 };
   const dayCount = (orderData.dateMode === 'range' && orderData.dateCount > 0) ? orderData.dateCount : 1;
-  const totalPeople = (m.A||0) + (m.B||0) + (m.C||0) + (s.D_students||0) + (s.D_teachers||0) + (s.E_students||0) + (s.E_teachers||0);
-  const totalAmount = ((m.A||0)*120 + (m.B||0)*120 + (m.C||0)*120 + (s.D_students||0)*30 + (s.E_students||0)*40) * dayCount;
+  const totalPeople = (m.A||0)+(m.B||0)+(m.C||0)+(m.D||0)+(s.E_students||0)+(s.E_teachers||0)+(s.F_students||0)+(s.F_teachers||0)+(orderData.noteCount||0);
+  const totalAmount = ((m.A||0)*120+(m.B||0)*120+(m.C||0)*120+(m.D||0)*120+(s.E_students||0)*30+(s.F_students||0)*40+(orderData.noteCount||0)*120) * dayCount;
   // 套餐摘要（只顯示有點的）
   const mealsList = [];
   if (m.A) mealsList.push(`A起司雞肉捲×${m.A}`);
   if (m.B) mealsList.push(`B起司燻雞派×${m.B}`);
-  if (m.C) mealsList.push(`C招牌便當×${m.C}`);
+  if (m.C) mealsList.push(`C米漢堡×${m.C}`);
+  if (m.D) mealsList.push(`D招牌便當×${m.D}`);
+  if (orderData.noteCount) mealsList.push(`備註人數×${orderData.noteCount}`);
   const mealsSummary = mealsList.length > 0 ? mealsList.join('、') : '無';
   // 座位區摘要
   const seatsList = [];
-  if (s.D_students) seatsList.push(`D區學生×${s.D_students}`);
-  if (s.D_teachers) seatsList.push(`D區老師×${s.D_teachers}(免費)`);
   if (s.E_students) seatsList.push(`E區學生×${s.E_students}`);
   if (s.E_teachers) seatsList.push(`E區老師×${s.E_teachers}(免費)`);
+  if (s.F_students) seatsList.push(`F區學生×${s.F_students}`);
+  if (s.F_teachers) seatsList.push(`F區老師×${s.F_teachers}(免費)`);
   const seatsSummary = seatsList.length > 0 ? seatsList.join('、') : '無';
   // 座位號碼字串
   const seatsStr = (orderData.selectedSeats || []).join('、');
@@ -1765,6 +1797,18 @@ function editOrder(id) {
     return;
   }
   currentOrder = JSON.parse(JSON.stringify(o));
+  // 確保新欄位存在
+  if (!currentOrder.meals) currentOrder.meals = {};
+  if (currentOrder.meals.D === undefined) currentOrder.meals.D = 0;
+  if (!currentOrder.seats) currentOrder.seats = {};
+  if (currentOrder.seats.E_students === undefined) currentOrder.seats.E_students = 0;
+  if (currentOrder.seats.E_teachers === undefined) currentOrder.seats.E_teachers = 0;
+  if (currentOrder.seats.F_students === undefined) currentOrder.seats.F_students = 0;
+  if (currentOrder.seats.F_teachers === undefined) currentOrder.seats.F_teachers = 0;
+  if (currentOrder.noteCount === undefined) currentOrder.noteCount = 0;
+  // 同步到 UI
+  const ncInput = document.getElementById('noteCountInput');
+  if (ncInput) ncInput.value = currentOrder.noteCount || 0;
   editingOrderId = id;
   document.getElementById('schoolName').value = o.schoolName;
   document.getElementById('contact').value = o.contact;
@@ -1797,14 +1841,18 @@ function queryOrderByNo() {
   if (!o) { result.innerHTML = `<div style="padding:12px; background:#fdecef; border-radius:8px; color:#c0392b;">查無訂單號「${escapeHtml(no)}」</div>`; return; }
   const slot = TIME_SLOTS.find(s => s.id === o.timeSlot);
   const mealsArr = [];
-  if (o.meals.A) mealsArr.push(`A×${o.meals.A}`);
-  if (o.meals.B) mealsArr.push(`B×${o.meals.B}`);
-  if (o.meals.C) mealsArr.push(`C×${o.meals.C}`);
+  const m0 = o.meals || {};
+  if (m0.A) mealsArr.push(`A×${m0.A}`);
+  if (m0.B) mealsArr.push(`B×${m0.B}`);
+  if (m0.C) mealsArr.push(`C×${m0.C}`);
+  if (m0.D) mealsArr.push(`D×${m0.D}`);
+  if (o.noteCount) mealsArr.push(`備註×${o.noteCount}`);
   const seatArr = [];
-  if (o.seats.D_students) seatArr.push(`D學生×${o.seats.D_students}`);
-  if (o.seats.D_teachers) seatArr.push(`D老師×${o.seats.D_teachers}`);
-  if (o.seats.E_students) seatArr.push(`E學生×${o.seats.E_students}`);
-  if (o.seats.E_teachers) seatArr.push(`E老師×${o.seats.E_teachers}`);
+  const s0 = o.seats || {};
+  if (s0.E_students) seatArr.push(`E學生×${s0.E_students}`);
+  if (s0.E_teachers) seatArr.push(`E老師×${s0.E_teachers}`);
+  if (s0.F_students) seatArr.push(`F學生×${s0.F_students}`);
+  if (s0.F_teachers) seatArr.push(`F老師×${s0.F_teachers}`);
   const row = (k,v) => `<div style="display:grid; grid-template-columns:96px 1fr; gap:6px; padding:5px 0; border-bottom:1px dashed #e5e5e5;"><div style="color:#888;">${k}</div><div><strong>${v}</strong></div></div>`;
   result.innerHTML = `<div style="border:2px solid #1e3a5f; border-radius:10px; padding:16px; background:#f8fafc;">
     <div style="font-size:18px; font-weight:700; color:#1e3a5f; margin-bottom:10px;">🔖 訂單號 ${escapeHtml(o.orderNo)}　<span style="font-size:13px; color:#888;">(代號 ${o.code || '?'})</span></div>
@@ -1845,9 +1893,9 @@ function renderOrdersList() {
       <td><strong>${escapeHtml(o.schoolName)}</strong></td>
       <td>${escapeHtml(o.contact)}</td><td>${escapeHtml(o.phone)}</td>
       <td>${escapeHtml(o.schoolPhone || '—')}</td>
-      <td>${o.meals.A}/${o.meals.B}/${o.meals.C}</td>
-      <td>${o.seats.D_students}/${o.seats.E_students}</td>
-      <td>${o.seats.D_teachers + o.seats.E_teachers}</td>
+      <td>${(o.meals||{}).A||0}/${(o.meals||{}).B||0}/${(o.meals||{}).C||0}/${(o.meals||{}).D||0}${o.noteCount?(' +備註'+o.noteCount):''}</td>
+      <td>${(o.seats||{}).E_students||0}/${(o.seats||{}).F_students||0}</td>
+      <td>${((o.seats||{}).E_teachers||0) + ((o.seats||{}).F_teachers||0)}</td>
       <td>${totalPeople(o)}</td>
       <td><strong>$${calcTotal(o).toLocaleString()}</strong></td>
       <td class="actions">
@@ -1915,13 +1963,16 @@ function generateOrderPrintHTML(o) {
   const date = new Date(o.createdAt).toLocaleString('zh-TW');
   const color = getOrderColor(o.code);
   let mealsHtml = '';
-  if (o.meals.A) mealsHtml += `<tr><td>A 起司雞肉捲套餐</td><td>${o.meals.A}</td><td>$120</td><td>$${(o.meals.A*120).toLocaleString()}</td></tr>`;
-  if (o.meals.B) mealsHtml += `<tr><td>B 起司燻雞派套餐</td><td>${o.meals.B}</td><td>$120</td><td>$${(o.meals.B*120).toLocaleString()}</td></tr>`;
-  if (o.meals.C) mealsHtml += `<tr><td>C 招牌便當套餐</td><td>${o.meals.C}</td><td>$120</td><td>$${(o.meals.C*120).toLocaleString()}</td></tr>`;
-  if (o.seats.D_students) mealsHtml += `<tr><td>D 預約座位（學生）</td><td>${o.seats.D_students}</td><td>$30</td><td>$${(o.seats.D_students*30).toLocaleString()}</td></tr>`;
-  if (o.seats.D_teachers) mealsHtml += `<tr><td>D 預約座位（老師）</td><td>${o.seats.D_teachers}</td><td>免費</td><td>$0</td></tr>`;
-  if (o.seats.E_students) mealsHtml += `<tr><td>E 預約座位+冬瓜茶（學生）</td><td>${o.seats.E_students}</td><td>$40</td><td>$${(o.seats.E_students*40).toLocaleString()}</td></tr>`;
-  if (o.seats.E_teachers) mealsHtml += `<tr><td>E 預約座位+冬瓜茶（老師）</td><td>${o.seats.E_teachers}</td><td>免費</td><td>$0</td></tr>`;
+  const mP = o.meals || {}; const sP = o.seats || {};
+  if (mP.A) mealsHtml += `<tr><td>A 起司雞肉捲套餐</td><td>${mP.A}</td><td>$120</td><td>$${(mP.A*120).toLocaleString()}</td></tr>`;
+  if (mP.B) mealsHtml += `<tr><td>B 起司燻雞派套餐</td><td>${mP.B}</td><td>$120</td><td>$${(mP.B*120).toLocaleString()}</td></tr>`;
+  if (mP.C) mealsHtml += `<tr><td>C 米漢堡套餐</td><td>${mP.C}</td><td>$120</td><td>$${(mP.C*120).toLocaleString()}</td></tr>`;
+  if (mP.D) mealsHtml += `<tr><td>D 招牌便當套餐</td><td>${mP.D}</td><td>$120</td><td>$${(mP.D*120).toLocaleString()}</td></tr>`;
+  if (o.noteCount) mealsHtml += `<tr><td>備註人數（免座位）</td><td>${o.noteCount}</td><td>$120</td><td>$${(o.noteCount*120).toLocaleString()}</td></tr>`;
+  if (sP.E_students) mealsHtml += `<tr><td>E 預約座位（學生）</td><td>${sP.E_students}</td><td>$30</td><td>$${(sP.E_students*30).toLocaleString()}</td></tr>`;
+  if (sP.E_teachers) mealsHtml += `<tr><td>E 預約座位（老師）</td><td>${sP.E_teachers}</td><td>免費</td><td>$0</td></tr>`;
+  if (sP.F_students) mealsHtml += `<tr><td>F 預約座位+冬瓜茶（學生）</td><td>${sP.F_students}</td><td>$40</td><td>$${(sP.F_students*40).toLocaleString()}</td></tr>`;
+  if (sP.F_teachers) mealsHtml += `<tr><td>F 預約座位+冬瓜茶（老師）</td><td>${sP.F_teachers}</td><td>免費</td><td>$0</td></tr>`;
   return `<div class="print-card"><h2>115年7月8月安親班團體訂餐 · 訂單明細</h2>
     <div style="text-align:center; margin-bottom:14px;">
       <span class="order-code-tag" style="background:${color}; width:48px; height:48px; line-height:44px; font-size:22px;">${o.code}</span></div>
@@ -1958,19 +2009,21 @@ function printAll() {
       const tableHtml = `<table style="width:100%; border-collapse:collapse; margin-bottom:12px;"><thead><tr style="background:#e9eef5;">
         <th style="padding:6px; border:1px solid #ddd;">代號</th><th style="padding:6px; border:1px solid #ddd;">安親班</th>
         <th style="padding:6px; border:1px solid #ddd;">聯絡人</th><th style="padding:6px; border:1px solid #ddd;">手機</th>
-        <th style="padding:6px; border:1px solid #ddd;">A</th><th style="padding:6px; border:1px solid #ddd;">B</th><th style="padding:6px; border:1px solid #ddd;">C</th>
-        <th style="padding:6px; border:1px solid #ddd;">D學/師</th><th style="padding:6px; border:1px solid #ddd;">E學/師</th>
+        <th style="padding:6px; border:1px solid #ddd;">A</th><th style="padding:6px; border:1px solid #ddd;">B</th><th style="padding:6px; border:1px solid #ddd;">C</th><th style="padding:6px; border:1px solid #ddd;">D</th><th style="padding:6px; border:1px solid #ddd;">備註</th>
+        <th style="padding:6px; border:1px solid #ddd;">E學/師</th><th style="padding:6px; border:1px solid #ddd;">F學/師</th>
         <th style="padding:6px; border:1px solid #ddd;">人數</th><th style="padding:6px; border:1px solid #ddd;">金額</th>
       </tr></thead><tbody>${slotOrders.map(o => { const c = getOrderColor(o.code);
         return `<tr><td style="padding:6px; border:1px solid #ddd; text-align:center;"><span class="order-code-tag" style="background:${c}; width:28px; height:28px; line-height:24px; font-size:13px;">${o.code}</span></td>
           <td style="padding:6px; border:1px solid #ddd;"><strong>${escapeHtml(o.schoolName)}</strong></td>
           <td style="padding:6px; border:1px solid #ddd;">${escapeHtml(o.contact)}</td>
           <td style="padding:6px; border:1px solid #ddd;">${escapeHtml(o.phone)}</td>
-          <td style="padding:6px; border:1px solid #ddd; text-align:center;">${o.meals.A}</td>
-          <td style="padding:6px; border:1px solid #ddd; text-align:center;">${o.meals.B}</td>
-          <td style="padding:6px; border:1px solid #ddd; text-align:center;">${o.meals.C}</td>
-          <td style="padding:6px; border:1px solid #ddd; text-align:center;">${o.seats.D_students}/${o.seats.D_teachers}</td>
-          <td style="padding:6px; border:1px solid #ddd; text-align:center;">${o.seats.E_students}/${o.seats.E_teachers}</td>
+          <td style="padding:6px; border:1px solid #ddd; text-align:center;">${(o.meals||{}).A||0}</td>
+          <td style="padding:6px; border:1px solid #ddd; text-align:center;">${(o.meals||{}).B||0}</td>
+          <td style="padding:6px; border:1px solid #ddd; text-align:center;">${(o.meals||{}).C||0}</td>
+          <td style="padding:6px; border:1px solid #ddd; text-align:center;">${(o.meals||{}).D||0}</td>
+          <td style="padding:6px; border:1px solid #ddd; text-align:center;">${o.noteCount||0}</td>
+          <td style="padding:6px; border:1px solid #ddd; text-align:center;">${(o.seats||{}).E_students||0}/${(o.seats||{}).E_teachers||0}</td>
+          <td style="padding:6px; border:1px solid #ddd; text-align:center;">${(o.seats||{}).F_students||0}/${(o.seats||{}).F_teachers||0}</td>
           <td style="padding:6px; border:1px solid #ddd; text-align:center;">${totalPeople(o)}</td>
           <td style="padding:6px; border:1px solid #ddd; text-align:right;"><strong>$${calcTotal(o).toLocaleString()}</strong></td></tr>`;
         }).join('')}</tbody></table>`;
@@ -2003,9 +2056,9 @@ function printAll() {
 function exportCSV() {
   const visible = getVisibleOrders();
   if (visible.length === 0) { showToast('沒有訂單可匯出', 'error'); return; }
-  const headers = ['訂單號','代號','訂單編號','建立時間','日期','結束日','指定星期','總次數','時段','安親班','聯絡人','手機','學校電話','A套餐','B套餐','C套餐','D學生','D老師','E學生','E老師','總人數','金額','座位編號'];
+  const headers = ['訂單號','代號','訂單編號','建立時間','日期','結束日','指定星期','總次數','時段','安親班','聯絡人','手機','學校電話','A套餐','B套餐','C套餐','D套餐','備註人數','E學生','E老師','F學生','F老師','總人數','金額','座位編號'];
   const sorted = [...visible].sort((a, b) => (a.date||'').localeCompare(b.date||'') || a.timeSlot.localeCompare(b.timeSlot) || (a.code||'').localeCompare(b.code||''));
-  const rows = sorted.map(o => [o.orderNo || '', o.code, o.id, new Date(o.createdAt).toLocaleString('zh-TW'), o.date || '', (o.dateMode==='range'?(o.dateEnd||''):''), (o.dateMode==='range'?weekdaysLabel(o.weekdays):''), orderDateCount(o), o.timeSlot, o.schoolName, o.contact, o.phone, o.schoolPhone || '', o.meals.A, o.meals.B, o.meals.C, o.seats.D_students, o.seats.D_teachers, o.seats.E_students, o.seats.E_teachers, totalPeople(o), calcTotal(o), o.selectedSeats.join(' ')]);
+  const rows = sorted.map(o => [o.orderNo || '', o.code, o.id, new Date(o.createdAt).toLocaleString('zh-TW'), o.date || '', (o.dateMode==='range'?(o.dateEnd||''):''), (o.dateMode==='range'?weekdaysLabel(o.weekdays):''), orderDateCount(o), o.timeSlot, o.schoolName, o.contact, o.phone, o.schoolPhone || '', (o.meals||{}).A||0, (o.meals||{}).B||0, (o.meals||{}).C||0, (o.meals||{}).D||0, o.noteCount||0, (o.seats||{}).E_students||0, (o.seats||{}).E_teachers||0, (o.seats||{}).F_students||0, (o.seats||{}).F_teachers||0, totalPeople(o), calcTotal(o), o.selectedSeats.join(' ')]);
   const csv = '﻿' + [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
@@ -2198,14 +2251,18 @@ function showModal(title, message, onConfirm) {
 function showOrderConfirm(o) {
   const row = (k,v) => `<div style="display:grid; grid-template-columns:88px 1fr; gap:6px; padding:5px 0; border-bottom:1px dashed #e5e5e5; font-size:14px;"><div style="color:#888;">${k}</div><div><strong>${v}</strong></div></div>`;
   const mealsArr = [];
-  if (o.meals.A) mealsArr.push(`A×${o.meals.A}`);
-  if (o.meals.B) mealsArr.push(`B×${o.meals.B}`);
-  if (o.meals.C) mealsArr.push(`C×${o.meals.C}`);
+  const m0 = o.meals || {};
+  if (m0.A) mealsArr.push(`A×${m0.A}`);
+  if (m0.B) mealsArr.push(`B×${m0.B}`);
+  if (m0.C) mealsArr.push(`C×${m0.C}`);
+  if (m0.D) mealsArr.push(`D×${m0.D}`);
+  if (o.noteCount) mealsArr.push(`備註×${o.noteCount}`);
   const seatArr = [];
-  if (o.seats.D_students) seatArr.push(`D學生×${o.seats.D_students}`);
-  if (o.seats.D_teachers) seatArr.push(`D老師×${o.seats.D_teachers}`);
-  if (o.seats.E_students) seatArr.push(`E學生×${o.seats.E_students}`);
-  if (o.seats.E_teachers) seatArr.push(`E老師×${o.seats.E_teachers}`);
+  const s0 = o.seats || {};
+  if (s0.E_students) seatArr.push(`E學生×${s0.E_students}`);
+  if (s0.E_teachers) seatArr.push(`E老師×${s0.E_teachers}`);
+  if (s0.F_students) seatArr.push(`F學生×${s0.F_students}`);
+  if (s0.F_teachers) seatArr.push(`F老師×${s0.F_teachers}`);
   document.getElementById('orderConfirmBody').innerHTML =
     `<div style="text-align:center; font-size:22px; font-weight:800; color:#1e3a5f; margin-bottom:12px;">🔖 訂單號 ${escapeHtml(o.orderNo || '')}</div>`
     + row('安親班', escapeHtml(o.schoolName || '—'))
@@ -2249,6 +2306,17 @@ function renderAll() { renderDatePicker(); renderTimeSlots(); renderMeals(); ren
 document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
 document.getElementById('btnAutoArrange')?.addEventListener('click', autoArrangeSeats);
   document.getElementById('btnClearSeats')?.addEventListener('click', clearSelectedSeats);
+  document.getElementById('noteCountInc')?.addEventListener('click', () => {
+    const inp = document.getElementById('noteCountInput');
+    inp.value = (parseInt(inp.value)||0) + 1;
+    updateSummary();
+  });
+  document.getElementById('noteCountDec')?.addEventListener('click', () => {
+    const inp = document.getElementById('noteCountInput');
+    inp.value = Math.max(0, (parseInt(inp.value)||0) - 1);
+    updateSummary();
+  });
+  document.getElementById('noteCountInput')?.addEventListener('input', updateSummary);
   document.getElementById('btnSave').addEventListener('click', saveCurrentOrder);
 document.getElementById('btnReset').addEventListener('click', () => {
   showModal('清空表單', '要清空目前輸入的內容嗎？', () => { resetForm(); renderAll(); showToast('已清空', 'success'); });
