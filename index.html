@@ -989,14 +989,15 @@ function formatDateChinese(dateStr) {
   return `${y}年${m}月${d}日 (週${wd})`;
 }
 const MEALS = [
-  { code: 'A', name: '起司雞肉捲套餐', desc: '起司雞肉捲 + 2塊小雞塊 + 小薯條 + 冬瓜茶暢飲', price: 120, img: 'images/meal-a.jpg?v=2' },
-  { code: 'B', name: '起司燻雞派套餐', desc: '起司燻雞派 + 2塊小雞塊 + 小薯條 + 冬瓜茶暢飲', price: 120, img: 'images/meal-b.jpg?v=2' },
-  { code: 'C', name: '米漢堡套餐', desc: '米漢堡（薑燒豬肉/日式牛丼）+ 2塊小雞塊 + 小薯條 + 冬瓜茶暢飲', price: 120, img: 'images/meal-c.jpg?v=2' },
-  { code: 'D', name: '招牌便當套餐', desc: '代訂便當（招牌便當）+ 冬瓜茶暢飲', price: 120, img: 'images/meal-d.jpg?v=2' }
+  { code: 'A', name: '起司雞肉捲套餐', desc: '起司雞肉捲 + 2塊小雞塊 + 小薯條 + 冬瓜茶暢飲', price: 120, img: 'images/meal-a.jpg?v=3' },
+  { code: 'B', name: '起司燻雞派套餐', desc: '起司燻雞派 + 2塊小雞塊 + 小薯條 + 冬瓜茶暢飲', price: 120, img: 'images/meal-b.jpg?v=3' },
+  { code: 'C', name: '米漢堡套餐', desc: '米漢堡（薑燒豬肉/日式牛丼）+ 2塊小雞塊 + 小薯條 + 冬瓜茶暢飲', price: 120, img: 'images/meal-c.jpg?v=3' },
+  { code: 'D', name: '招牌便當套餐', desc: '代訂便當（招牌便當）+ 冬瓜茶暢飲', price: 120, img: 'images/meal-d.jpg?v=3' },
+  { code: 'E', name: '雞排套餐', desc: '火岩堂雞排 + 煉乳銀絲卷 + 台灣好茶', price: 135, img: 'images/meal-e.jpg?v=3' }
 ];
 const SEAT_ONLY = [
-  { code: 'E', name: '預約座位區', desc: '每人 30 元清潔費（老師免費）', price: 30 },
-  { code: 'F', name: '預約座位區 + 冬瓜茶', desc: '每人 40 元（老師免費）', price: 40 }
+  { code: 'F', name: '預約座位區', desc: '每人 30 元清潔費（老師免費）', price: 30 },
+  { code: 'G', name: '預約座位區 + 冬瓜茶', desc: '每人 40 元（老師免費）', price: 40 }
 ];
 const COLORS = ['#1e3a5f','#2e8b57','#1976d2','#6a4c93','#e91e63','#00bcd4','#ff9800','#795548','#4caf50','#3f51b5','#ffc107','#009688','#673ab7','#f44336','#03a9f4'];
 
@@ -1009,6 +1010,36 @@ let editingOrderId = null;
       const dcInp = document.getElementById('discountInput');
       if (dcInp) dcInp.value = 0;
 let currentOrder = newOrderTemplate();
+
+// 把舊版訂單資料遷移到新代號系統（向後相容）
+function migrateOrder(o) {
+  if (!o) return o;
+  if (!o.meals) o.meals = {};
+  ['A','B','C','D','E'].forEach(k => { if (o.meals[k] == null) o.meals[k] = 0; });
+  if (!o.seats) o.seats = {};
+  // 遷移舊 keys：E_*→F_*, F_*→G_*（先把舊的 F_* 搬去 G_*，再把 E_* 搬去 F_*）
+  if ('E_students' in o.seats || 'E_teachers' in o.seats) {
+    o.seats.G_students = (o.seats.G_students || 0) + (o.seats.F_students || 0);
+    o.seats.G_teachers = (o.seats.G_teachers || 0) + (o.seats.F_teachers || 0);
+    o.seats.F_students = o.seats.E_students || 0;
+    o.seats.F_teachers = o.seats.E_teachers || 0;
+    delete o.seats.E_students;
+    delete o.seats.E_teachers;
+  }
+  // 更舊版 D_*（最早是 30 元清潔費）→ F_*
+  if ('D_students' in o.seats || 'D_teachers' in o.seats) {
+    o.seats.F_students = (o.seats.F_students || 0) + (o.seats.D_students || 0);
+    o.seats.F_teachers = (o.seats.F_teachers || 0) + (o.seats.D_teachers || 0);
+    delete o.seats.D_students;
+    delete o.seats.D_teachers;
+  }
+  ['F_students','F_teachers','G_students','G_teachers'].forEach(k => {
+    if (o.seats[k] == null) o.seats[k] = 0;
+  });
+  if (o.noteCount == null) o.noteCount = 0;
+  if (o.discount == null) o.discount = 0;
+  return o;
+}
 let db = null;
 let firstLoad = true;
 const LOCAL_KEY = 'orderbook_115_summer_v2_local';
@@ -1021,8 +1052,8 @@ function newOrderTemplate() {
     orderNo: '',
     schoolName: '', contact: '', phone: '', schoolPhone: '', remark: '',
     timeSlot: '',
-    meals: { A: 0, B: 0, C: 0, D: 0 },
-    seats: { E_students: 0, E_teachers: 0, F_students: 0, F_teachers: 0 },
+    meals: { A: 0, B: 0, C: 0, D: 0, E: 0 },
+    seats: { F_students: 0, F_teachers: 0, G_students: 0, G_teachers: 0 },
     noteCount: 0,
     discount: 0,
     selectedSeats: [],
@@ -1070,7 +1101,7 @@ if (isConfigured()) {
 getClientIp(); // 預先取得 IP，供鎖定/防洗單判斷
 
 function fallbackLocal() {
-  try { ORDERS = JSON.parse(localStorage.getItem(LOCAL_KEY) || '[]'); }
+  try { ORDERS = JSON.parse(localStorage.getItem(LOCAL_KEY) || '[]').map(migrateOrder); }
   catch(e) { ORDERS = []; }
   ensureCodes();
   renderAll();
@@ -1083,7 +1114,8 @@ function subscribeOrders() {
   onSnapshot(q, (snapshot) => {
     ORDERS = snapshot.docs.map(d => {
       const data = d.data();
-      return { ...data, id: d.id, createdAt: data.createdAt?.toMillis ? data.createdAt.toMillis() : data.createdAt || Date.now() };
+      const order = { ...data, id: d.id, createdAt: data.createdAt?.toMillis ? data.createdAt.toMillis() : data.createdAt || Date.now() };
+      return migrateOrder(order);
     });
     ensureCodes();
     if (firstLoad) { firstLoad = false; hideLoading(); }
@@ -1144,7 +1176,7 @@ function getOrderColor(code) {
 function calcTotalPerDay(o) {
   const m = o.meals || {};
   const s = o.seats || {};
-  return (m.A||0)*120 + (m.B||0)*120 + (m.C||0)*120 + (m.D||0)*120 + (s.E_students||0)*30 + (s.F_students||0)*40 + (o.noteCount||0)*120;
+  return (m.A||0)*120 + (m.B||0)*120 + (m.C||0)*120 + (m.D||0)*120 + (m.E||0)*135 + (s.F_students||0)*30 + (s.G_students||0)*40 + (o.noteCount||0)*120;
 }
 function calcSubtotal(o) {
   return calcTotalPerDay(o) * orderDateCount(o);
@@ -1155,7 +1187,7 @@ function calcTotal(o) {
 function totalPeople(o) {
   const m = o.meals || {};
   const s = o.seats || {};
-  return (m.A||0)+(m.B||0)+(m.C||0)+(m.D||0)+(s.E_students||0)+(s.E_teachers||0)+(s.F_students||0)+(s.F_teachers||0)+(o.noteCount||0);
+  return (m.A||0)+(m.B||0)+(m.C||0)+(m.D||0)+(m.E||0)+(s.F_students||0)+(s.F_teachers||0)+(s.G_students||0)+(s.G_teachers||0)+(o.noteCount||0);
 }
 // 需要安排座位的人數（總人數扣掉備註人數）
 function seatsNeeded(o) {
@@ -1584,11 +1616,11 @@ function validateOrder() {
 // ==================== LINE 通知 ====================
 const MAKE_WEBHOOK_URL = 'https://hook.eu1.make.com/p4pzicwbu2ysx89z6owom8q5wrsnmxum';
 function notifyLINE(action, orderData, extra = {}) {
-  const m = orderData.meals || { A: 0, B: 0, C: 0, D: 0 };
-  const s = orderData.seats || { E_students: 0, E_teachers: 0, F_students: 0, F_teachers: 0 };
+  const m = orderData.meals || { A: 0, B: 0, C: 0, D: 0, E: 0 };
+  const s = orderData.seats || { F_students: 0, F_teachers: 0, G_students: 0, G_teachers: 0 };
   const dayCount = (orderData.dateMode === 'range' && orderData.dateCount > 0) ? orderData.dateCount : 1;
-  const totalPeople = (m.A||0)+(m.B||0)+(m.C||0)+(m.D||0)+(s.E_students||0)+(s.E_teachers||0)+(s.F_students||0)+(s.F_teachers||0)+(orderData.noteCount||0);
-  const subtotalAmount = ((m.A||0)*120+(m.B||0)*120+(m.C||0)*120+(m.D||0)*120+(s.E_students||0)*30+(s.F_students||0)*40+(orderData.noteCount||0)*120) * dayCount;
+  const totalPeople = (m.A||0)+(m.B||0)+(m.C||0)+(m.D||0)+(m.E||0)+(s.F_students||0)+(s.F_teachers||0)+(s.G_students||0)+(s.G_teachers||0)+(orderData.noteCount||0);
+  const subtotalAmount = ((m.A||0)*120+(m.B||0)*120+(m.C||0)*120+(m.D||0)*120+(m.E||0)*135+(s.F_students||0)*30+(s.G_students||0)*40+(orderData.noteCount||0)*120) * dayCount;
   const discountAmount = orderData.discount || 0;
   const totalAmount = Math.max(0, subtotalAmount - discountAmount);
   // 套餐摘要（只顯示有點的）
@@ -1597,14 +1629,15 @@ function notifyLINE(action, orderData, extra = {}) {
   if (m.B) mealsList.push(`B起司燻雞派×${m.B}`);
   if (m.C) mealsList.push(`C米漢堡×${m.C}`);
   if (m.D) mealsList.push(`D招牌便當×${m.D}`);
+  if (m.E) mealsList.push(`E雞排×${m.E}`);
   if (orderData.noteCount) mealsList.push(`備註人數×${orderData.noteCount}`);
   const mealsSummary = mealsList.length > 0 ? mealsList.join('、') : '無';
   // 座位區摘要
   const seatsList = [];
-  if (s.E_students) seatsList.push(`E區學生×${s.E_students}`);
-  if (s.E_teachers) seatsList.push(`E區老師×${s.E_teachers}(免費)`);
   if (s.F_students) seatsList.push(`F區學生×${s.F_students}`);
   if (s.F_teachers) seatsList.push(`F區老師×${s.F_teachers}(免費)`);
+  if (s.G_students) seatsList.push(`G區學生×${s.G_students}`);
+  if (s.G_teachers) seatsList.push(`G區老師×${s.G_teachers}(免費)`);
   const seatsSummary = seatsList.length > 0 ? seatsList.join('、') : '無';
   // 座位號碼字串
   const seatsStr = (orderData.selectedSeats || []).join('、');
@@ -1825,13 +1858,7 @@ function editOrder(id) {
   }
   currentOrder = JSON.parse(JSON.stringify(o));
   // 確保新欄位存在
-  if (!currentOrder.meals) currentOrder.meals = {};
-  if (currentOrder.meals.D === undefined) currentOrder.meals.D = 0;
-  if (!currentOrder.seats) currentOrder.seats = {};
-  if (currentOrder.seats.E_students === undefined) currentOrder.seats.E_students = 0;
-  if (currentOrder.seats.E_teachers === undefined) currentOrder.seats.E_teachers = 0;
-  if (currentOrder.seats.F_students === undefined) currentOrder.seats.F_students = 0;
-  if (currentOrder.seats.F_teachers === undefined) currentOrder.seats.F_teachers = 0;
+  currentOrder = migrateOrder(currentOrder);
   if (currentOrder.noteCount === undefined) currentOrder.noteCount = 0;
   if (currentOrder.discount === undefined) currentOrder.discount = 0;
   // 同步到 UI
@@ -1876,13 +1903,14 @@ function queryOrderByNo() {
   if (m0.B) mealsArr.push(`B×${m0.B}`);
   if (m0.C) mealsArr.push(`C×${m0.C}`);
   if (m0.D) mealsArr.push(`D×${m0.D}`);
+  if (m0.E) mealsArr.push(`E×${m0.E}`);
   if (o.noteCount) mealsArr.push(`備註×${o.noteCount}`);
   const seatArr = [];
   const s0 = o.seats || {};
-  if (s0.E_students) seatArr.push(`E學生×${s0.E_students}`);
-  if (s0.E_teachers) seatArr.push(`E老師×${s0.E_teachers}`);
   if (s0.F_students) seatArr.push(`F學生×${s0.F_students}`);
   if (s0.F_teachers) seatArr.push(`F老師×${s0.F_teachers}`);
+  if (s0.G_students) seatArr.push(`G學生×${s0.G_students}`);
+  if (s0.G_teachers) seatArr.push(`G老師×${s0.G_teachers}`);
   const row = (k,v) => `<div style="display:grid; grid-template-columns:96px 1fr; gap:6px; padding:5px 0; border-bottom:1px dashed #e5e5e5;"><div style="color:#888;">${k}</div><div><strong>${v}</strong></div></div>`;
   result.innerHTML = `<div style="border:2px solid #1e3a5f; border-radius:10px; padding:16px; background:#f8fafc;">
     <div style="font-size:18px; font-weight:700; color:#1e3a5f; margin-bottom:10px;">🔖 訂單號 ${escapeHtml(o.orderNo)}　<span style="font-size:13px; color:#888;">(代號 ${o.code || '?'})</span></div>
@@ -1907,7 +1935,7 @@ function renderOrdersList() {
   if (visible.length === 0) { container.innerHTML = '<div class="empty-state"><div class="icon">📭</div>' + (isCustomer() ? '你還沒有訂單，請到「新增訂單」建立' : '還沒有訂單') + '</div>'; return; }
   const sorted = [...visible].sort((a, b) => { if ((a.date||'') !== (b.date||'')) return (a.date||'').localeCompare(b.date||''); if (a.timeSlot !== b.timeSlot) return a.timeSlot.localeCompare(b.timeSlot); return (a.code || '').localeCompare(b.code || ''); });
   let html = `<div style="overflow-x:auto;"><table class="orders-table"><thead><tr>
-    <th>訂單號</th><th>代號</th><th>狀態</th><th>日期</th><th>時段</th><th>安親班</th><th>聯絡人</th><th>手機</th><th>學校電話</th><th>套餐(A/B/C/D)</th><th>座位(E/F)</th><th>老師</th><th>總人數</th><th>金額</th><th>操作</th>
+    <th>訂單號</th><th>代號</th><th>狀態</th><th>日期</th><th>時段</th><th>安親班</th><th>聯絡人</th><th>手機</th><th>學校電話</th><th>套餐(A/B/C/D/E)</th><th>座位(F/G)</th><th>老師</th><th>總人數</th><th>金額</th><th>操作</th>
   </tr></thead><tbody>`;
   sorted.forEach(o => {
     const slot = TIME_SLOTS.find(s => s.id === o.timeSlot);
@@ -1924,9 +1952,9 @@ function renderOrdersList() {
       <td><strong>${escapeHtml(o.schoolName)}</strong></td>
       <td>${escapeHtml(o.contact)}</td><td>${escapeHtml(o.phone)}</td>
       <td>${escapeHtml(o.schoolPhone || '—')}</td>
-      <td>${(o.meals||{}).A||0}/${(o.meals||{}).B||0}/${(o.meals||{}).C||0}/${(o.meals||{}).D||0}${o.noteCount?(' +備註'+o.noteCount):''}</td>
-      <td>${(o.seats||{}).E_students||0}/${(o.seats||{}).F_students||0}</td>
-      <td>${((o.seats||{}).E_teachers||0) + ((o.seats||{}).F_teachers||0)}</td>
+      <td>${(o.meals||{}).A||0}/${(o.meals||{}).B||0}/${(o.meals||{}).C||0}/${(o.meals||{}).D||0}/${(o.meals||{}).E||0}${o.noteCount?(' +備註'+o.noteCount):''}</td>
+      <td>${(o.seats||{}).F_students||0}/${(o.seats||{}).G_students||0}</td>
+      <td>${((o.seats||{}).F_teachers||0) + ((o.seats||{}).G_teachers||0)}</td>
       <td>${totalPeople(o)}</td>
       <td><strong>$${calcTotal(o).toLocaleString()}</strong></td>
       <td class="actions">
@@ -1999,11 +2027,12 @@ function generateOrderPrintHTML(o) {
   if (mP.B) mealsHtml += `<tr><td>B 起司燻雞派套餐</td><td>${mP.B}</td><td>$120</td><td>$${(mP.B*120).toLocaleString()}</td></tr>`;
   if (mP.C) mealsHtml += `<tr><td>C 米漢堡套餐</td><td>${mP.C}</td><td>$120</td><td>$${(mP.C*120).toLocaleString()}</td></tr>`;
   if (mP.D) mealsHtml += `<tr><td>D 招牌便當套餐</td><td>${mP.D}</td><td>$120</td><td>$${(mP.D*120).toLocaleString()}</td></tr>`;
+  if (mP.E) mealsHtml += `<tr><td>E 雞排套餐</td><td>${mP.E}</td><td>$135</td><td>$${(mP.E*135).toLocaleString()}</td></tr>`;
   if (o.noteCount) mealsHtml += `<tr><td>備註人數（免座位）</td><td>${o.noteCount}</td><td>$120</td><td>$${(o.noteCount*120).toLocaleString()}</td></tr>`;
-  if (sP.E_students) mealsHtml += `<tr><td>E 預約座位（學生）</td><td>${sP.E_students}</td><td>$30</td><td>$${(sP.E_students*30).toLocaleString()}</td></tr>`;
-  if (sP.E_teachers) mealsHtml += `<tr><td>E 預約座位（老師）</td><td>${sP.E_teachers}</td><td>免費</td><td>$0</td></tr>`;
-  if (sP.F_students) mealsHtml += `<tr><td>F 預約座位+冬瓜茶（學生）</td><td>${sP.F_students}</td><td>$40</td><td>$${(sP.F_students*40).toLocaleString()}</td></tr>`;
-  if (sP.F_teachers) mealsHtml += `<tr><td>F 預約座位+冬瓜茶（老師）</td><td>${sP.F_teachers}</td><td>免費</td><td>$0</td></tr>`;
+  if (sP.F_students) mealsHtml += `<tr><td>F 預約座位（學生）</td><td>${sP.F_students}</td><td>$30</td><td>$${(sP.F_students*30).toLocaleString()}</td></tr>`;
+  if (sP.F_teachers) mealsHtml += `<tr><td>F 預約座位（老師）</td><td>${sP.F_teachers}</td><td>免費</td><td>$0</td></tr>`;
+  if (sP.G_students) mealsHtml += `<tr><td>G 預約座位+冬瓜茶（學生）</td><td>${sP.G_students}</td><td>$40</td><td>$${(sP.G_students*40).toLocaleString()}</td></tr>`;
+  if (sP.G_teachers) mealsHtml += `<tr><td>G 預約座位+冬瓜茶（老師）</td><td>${sP.G_teachers}</td><td>免費</td><td>$0</td></tr>`;
   return `<div class="print-card"><h2>115年7月8月安親班團體訂餐 · 訂單明細</h2>
     <div style="text-align:center; margin-bottom:14px;">
       <span class="order-code-tag" style="background:${color}; width:48px; height:48px; line-height:44px; font-size:22px;">${o.code}</span></div>
@@ -2044,8 +2073,8 @@ function printAll() {
       const tableHtml = `<table style="width:100%; border-collapse:collapse; margin-bottom:12px;"><thead><tr style="background:#e9eef5;">
         <th style="padding:6px; border:1px solid #ddd;">代號</th><th style="padding:6px; border:1px solid #ddd;">安親班</th>
         <th style="padding:6px; border:1px solid #ddd;">聯絡人</th><th style="padding:6px; border:1px solid #ddd;">手機</th>
-        <th style="padding:6px; border:1px solid #ddd;">A</th><th style="padding:6px; border:1px solid #ddd;">B</th><th style="padding:6px; border:1px solid #ddd;">C</th><th style="padding:6px; border:1px solid #ddd;">D</th><th style="padding:6px; border:1px solid #ddd;">備註</th>
-        <th style="padding:6px; border:1px solid #ddd;">E學/師</th><th style="padding:6px; border:1px solid #ddd;">F學/師</th>
+        <th style="padding:6px; border:1px solid #ddd;">A</th><th style="padding:6px; border:1px solid #ddd;">B</th><th style="padding:6px; border:1px solid #ddd;">C</th><th style="padding:6px; border:1px solid #ddd;">D</th><th style="padding:6px; border:1px solid #ddd;">E</th><th style="padding:6px; border:1px solid #ddd;">備註</th>
+        <th style="padding:6px; border:1px solid #ddd;">F學/師</th><th style="padding:6px; border:1px solid #ddd;">G學/師</th>
         <th style="padding:6px; border:1px solid #ddd;">人數</th><th style="padding:6px; border:1px solid #ddd;">金額</th>
       </tr></thead><tbody>${slotOrders.map(o => { const c = getOrderColor(o.code);
         return `<tr><td style="padding:6px; border:1px solid #ddd; text-align:center;"><span class="order-code-tag" style="background:${c}; width:28px; height:28px; line-height:24px; font-size:13px;">${o.code}</span></td>
@@ -2056,9 +2085,10 @@ function printAll() {
           <td style="padding:6px; border:1px solid #ddd; text-align:center;">${(o.meals||{}).B||0}</td>
           <td style="padding:6px; border:1px solid #ddd; text-align:center;">${(o.meals||{}).C||0}</td>
           <td style="padding:6px; border:1px solid #ddd; text-align:center;">${(o.meals||{}).D||0}</td>
+          <td style="padding:6px; border:1px solid #ddd; text-align:center;">${(o.meals||{}).E||0}</td>
           <td style="padding:6px; border:1px solid #ddd; text-align:center;">${o.noteCount||0}</td>
-          <td style="padding:6px; border:1px solid #ddd; text-align:center;">${(o.seats||{}).E_students||0}/${(o.seats||{}).E_teachers||0}</td>
           <td style="padding:6px; border:1px solid #ddd; text-align:center;">${(o.seats||{}).F_students||0}/${(o.seats||{}).F_teachers||0}</td>
+          <td style="padding:6px; border:1px solid #ddd; text-align:center;">${(o.seats||{}).G_students||0}/${(o.seats||{}).G_teachers||0}</td>
           <td style="padding:6px; border:1px solid #ddd; text-align:center;">${totalPeople(o)}</td>
           <td style="padding:6px; border:1px solid #ddd; text-align:right;"><strong>$${calcTotal(o).toLocaleString()}</strong></td></tr>`;
         }).join('')}</tbody></table>`;
@@ -2091,9 +2121,9 @@ function printAll() {
 function exportCSV() {
   const visible = getVisibleOrders();
   if (visible.length === 0) { showToast('沒有訂單可匯出', 'error'); return; }
-  const headers = ['訂單號','代號','訂單編號','建立時間','日期','結束日','指定星期','總次數','時段','安親班','聯絡人','手機','學校電話','A套餐','B套餐','C套餐','D套餐','備註人數','E學生','E老師','F學生','F老師','總人數','小計','優惠金額','應付總額','座位編號'];
+  const headers = ['訂單號','代號','訂單編號','建立時間','日期','結束日','指定星期','總次數','時段','安親班','聯絡人','手機','學校電話','A套餐','B套餐','C套餐','D套餐','E套餐','備註人數','F學生','F老師','G學生','G老師','總人數','小計','優惠金額','應付總額','座位編號'];
   const sorted = [...visible].sort((a, b) => (a.date||'').localeCompare(b.date||'') || a.timeSlot.localeCompare(b.timeSlot) || (a.code||'').localeCompare(b.code||''));
-  const rows = sorted.map(o => [o.orderNo || '', o.code, o.id, new Date(o.createdAt).toLocaleString('zh-TW'), o.date || '', (o.dateMode==='range'?(o.dateEnd||''):''), (o.dateMode==='range'?weekdaysLabel(o.weekdays):''), orderDateCount(o), o.timeSlot, o.schoolName, o.contact, o.phone, o.schoolPhone || '', (o.meals||{}).A||0, (o.meals||{}).B||0, (o.meals||{}).C||0, (o.meals||{}).D||0, o.noteCount||0, (o.seats||{}).E_students||0, (o.seats||{}).E_teachers||0, (o.seats||{}).F_students||0, (o.seats||{}).F_teachers||0, totalPeople(o), calcSubtotal(o), (o.discount||0), calcTotal(o), o.selectedSeats.join(' ')]);
+  const rows = sorted.map(o => [o.orderNo || '', o.code, o.id, new Date(o.createdAt).toLocaleString('zh-TW'), o.date || '', (o.dateMode==='range'?(o.dateEnd||''):''), (o.dateMode==='range'?weekdaysLabel(o.weekdays):''), orderDateCount(o), o.timeSlot, o.schoolName, o.contact, o.phone, o.schoolPhone || '', (o.meals||{}).A||0, (o.meals||{}).B||0, (o.meals||{}).C||0, (o.meals||{}).D||0, (o.meals||{}).E||0, o.noteCount||0, (o.seats||{}).F_students||0, (o.seats||{}).F_teachers||0, (o.seats||{}).G_students||0, (o.seats||{}).G_teachers||0, totalPeople(o), calcSubtotal(o), (o.discount||0), calcTotal(o), o.selectedSeats.join(' ')]);
   const csv = '﻿' + [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
@@ -2234,8 +2264,8 @@ function renderOverviewDetails() {
             <th style="padding:6px; border:1px solid #ddd;">安親班</th>
             <th style="padding:6px; border:1px solid #ddd;">聯絡人</th>
             <th style="padding:6px; border:1px solid #ddd;">手機</th>
-            <th style="padding:6px; border:1px solid #ddd;">A/B/C/D 套餐</th>
-            <th style="padding:6px; border:1px solid #ddd;">E/F 座位</th>
+            <th style="padding:6px; border:1px solid #ddd;">A/B/C/D/E 套餐</th>
+            <th style="padding:6px; border:1px solid #ddd;">F/G 座位</th>
             <th style="padding:6px; border:1px solid #ddd;">備註</th>
             <th style="padding:6px; border:1px solid #ddd;">總人數</th>
             <th style="padding:6px; border:1px solid #ddd;">金額</th>
@@ -2243,8 +2273,8 @@ function renderOverviewDetails() {
           <tbody>${sorted.map(o => {
             const c = getOrderColor(o.code);
             const m0 = o.meals || {}; const s0 = o.seats || {};
-            const mealsStr = `${m0.A||0}/${m0.B||0}/${m0.C||0}/${m0.D||0}`;
-            const seatsStr = `${(s0.E_students||0)+(s0.E_teachers||0)}/${(s0.F_students||0)+(s0.F_teachers||0)}`;
+            const mealsStr = `${m0.A||0}/${m0.B||0}/${m0.C||0}/${m0.D||0}/${m0.E||0}`;
+            const seatsStr = `${(s0.F_students||0)+(s0.F_teachers||0)}/${(s0.G_students||0)+(s0.G_teachers||0)}`;
             return `<tr>
               <td style="padding:6px; border:1px solid #ddd; text-align:center;"><span class="order-code-tag" style="background:${c}; width:28px; height:28px; line-height:24px; font-size:13px;">${o.code||'?'}</span></td>
               <td style="padding:6px; border:1px solid #ddd; font-family:monospace;"><strong>${o.orderNo||'—'}</strong></td>
@@ -2330,13 +2360,14 @@ function showOrderConfirm(o) {
   if (m0.B) mealsArr.push(`B×${m0.B}`);
   if (m0.C) mealsArr.push(`C×${m0.C}`);
   if (m0.D) mealsArr.push(`D×${m0.D}`);
+  if (m0.E) mealsArr.push(`E×${m0.E}`);
   if (o.noteCount) mealsArr.push(`備註×${o.noteCount}`);
   const seatArr = [];
   const s0 = o.seats || {};
-  if (s0.E_students) seatArr.push(`E學生×${s0.E_students}`);
-  if (s0.E_teachers) seatArr.push(`E老師×${s0.E_teachers}`);
   if (s0.F_students) seatArr.push(`F學生×${s0.F_students}`);
   if (s0.F_teachers) seatArr.push(`F老師×${s0.F_teachers}`);
+  if (s0.G_students) seatArr.push(`G學生×${s0.G_students}`);
+  if (s0.G_teachers) seatArr.push(`G老師×${s0.G_teachers}`);
   document.getElementById('orderConfirmBody').innerHTML =
     `<div style="text-align:center; font-size:22px; font-weight:800; color:#1e3a5f; margin-bottom:12px;">🔖 訂單號 ${escapeHtml(o.orderNo || '')}</div>`
     + row('安親班', escapeHtml(o.schoolName || '—'))

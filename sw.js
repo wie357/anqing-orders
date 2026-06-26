@@ -1,6 +1,6 @@
 // 安親訂餐 PWA Service Worker
 // 採「網路優先」：永遠抓最新版，離線時才用快取，避免顯示舊版系統
-const CACHE = 'anqing-orders-v2';
+const CACHE = 'anqing-orders-v3';
 
 self.addEventListener('install', (e) => { self.skipWaiting(); });
 
