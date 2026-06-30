@@ -426,29 +426,22 @@ body.mode-range .summary-stat.day-stat { display: block; }
     </div>
   </div>
 
-  <div class="section seatmap-only">
-    <h2>⑥ 座位選擇</h2>
-    <p style="font-size: 13px; color: #555; margin-bottom: 10px;" id="seatHint">請先選擇用餐時段。</p>
-    <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 12px; flex-wrap: wrap;">
-      <button type="button" class="btn btn-primary" id="btnAutoArrange" style="padding: 8px 14px; font-size: 13px;">🎯 自動順序排列</button>
-      <button type="button" class="btn btn-secondary" id="btnClearSeats" style="padding: 8px 14px; font-size: 13px;">🧹 清除選位</button>
-      <span style="font-size: 12px; color: #888;">輸入人數後按「自動順序排列」會由前到後填滿可用座位</span>
+  <div class="section">
+    <h2>⑥ 自訂品項（臨時加菜，本次訂單）</h2>
+    <p style="font-size: 13px; color: #888; margin-bottom: 12px;">用於 LEADER 咖哩、小鐵人飲料、額外茶水等非固定套餐，輸入名稱+單價+數量按「➕ 新增」即可。</p>
+    <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; padding: 12px; background: #f0f7ff; border: 2px dashed #1e3a5f; border-radius: 8px;">
+      <input type="text" id="ciName" placeholder="品項名稱（例：LEADER咖哩）" style="flex: 2; min-width: 180px; padding: 8px 10px; border: 1px solid #c3cedd; border-radius: 6px; font-size: 14px;">
+      <input type="number" id="ciPrice" placeholder="單價" min="0" style="flex: 1; min-width: 80px; padding: 8px 10px; border: 1px solid #c3cedd; border-radius: 6px; font-size: 14px; text-align: right;">
+      <input type="number" id="ciQty" placeholder="數量" min="1" value="1" style="flex: 1; min-width: 60px; padding: 8px 10px; border: 1px solid #c3cedd; border-radius: 6px; font-size: 14px; text-align: right;">
+      <button type="button" class="btn btn-primary" id="ciAdd" style="padding: 8px 14px;">➕ 新增</button>
     </div>
-    <div class="legend">
-      <div class="legend-item"><div class="legend-dot" style="background:white;"></div>可選（顯示座位編號）</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#1e3a5f; border-color:#16304f;"></div>本次選取（顯示我的順序）</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#999;"></div>已被預訂（顯示訂單代號）</div>
-    </div>
-    <div class="seatmap-container" id="seatmapContainer">
-      <div class="seatmap-stage">━━━━━ 餐廳前方 / 取餐區 ━━━━━</div>
-      <div class="tables-grid" id="seatmap"></div>
-    </div>
+    <div id="customItemsList"></div>
   </div>
 
   <div class="summary-bar no-print">
     <div class="summary-info">
       <div class="summary-stat"><div class="label">總人數</div><div class="value" id="totalPeople">0</div></div>
-      <div class="summary-stat seat-stat"><div class="label">已選座位</div><div class="value" id="selectedSeats">0</div></div>
+      <div class="summary-stat"><div class="label">自訂品項</div><div class="value" id="customItemsCount">0</div></div>
       <div class="summary-stat day-stat"><div class="label">總次數(天)</div><div class="value" id="dayCount">1</div></div>
       <div class="summary-stat"><div class="label">小計</div><div class="value" style="color:#666;">$<span id="subtotalAmount">0</span></div></div>
       <div class="summary-stat" style="background:#fff4e6;">
@@ -1009,6 +1002,10 @@ let editingOrderId = null;
       if (ncInp) ncInp.value = 0;
       const dcInp = document.getElementById('discountInput');
       if (dcInp) dcInp.value = 0;
+      // 重置自訂品項 inputs
+      const ciN = document.getElementById('ciName'); if (ciN) ciN.value = '';
+      const ciP = document.getElementById('ciPrice'); if (ciP) ciP.value = '';
+      const ciQ = document.getElementById('ciQty'); if (ciQ) ciQ.value = '1';
 let currentOrder = newOrderTemplate();
 
 // 把舊版訂單資料遷移到新代號系統（向後相容）
@@ -1038,6 +1035,7 @@ function migrateOrder(o) {
   });
   if (o.noteCount == null) o.noteCount = 0;
   if (o.discount == null) o.discount = 0;
+  if (!Array.isArray(o.customItems)) o.customItems = [];
   return o;
 }
 let db = null;
@@ -1054,6 +1052,7 @@ function newOrderTemplate() {
     timeSlot: '',
     meals: { A: 0, B: 0, C: 0, D: 0, E: 0 },
     seats: { F_students: 0, F_teachers: 0, G_students: 0, G_teachers: 0 },
+    customItems: [],
     noteCount: 0,
     discount: 0,
     selectedSeats: [],
@@ -1173,10 +1172,14 @@ function getOrderColor(code) {
 }
 
 // ==================== 計算 ====================
+function calcCustomItems(o) {
+  if (!Array.isArray(o.customItems)) return 0;
+  return o.customItems.reduce((sum, it) => sum + (Number(it.price)||0) * (Number(it.qty)||0), 0);
+}
 function calcTotalPerDay(o) {
   const m = o.meals || {};
   const s = o.seats || {};
-  return (m.A||0)*120 + (m.B||0)*120 + (m.C||0)*120 + (m.D||0)*120 + (m.E||0)*135 + (s.F_students||0)*30 + (s.G_students||0)*40 + (o.noteCount||0)*120;
+  return (m.A||0)*120 + (m.B||0)*120 + (m.C||0)*120 + (m.D||0)*120 + (m.E||0)*135 + (s.F_students||0)*30 + (s.G_students||0)*40 + (o.noteCount||0)*120 + calcCustomItems(o);
 }
 function calcSubtotal(o) {
   return calcTotalPerDay(o) * orderDateCount(o);
@@ -1328,6 +1331,7 @@ function renderSeatOnly() {
 }
 function renderSeatmap() {
   const container = document.getElementById('seatmap');
+  if (!container) return;  // 座位選擇區已移除
   container.innerHTML = '';
   const hint = document.getElementById('seatHint');
   if (!currentOrder.timeSlot) { hint.textContent = '⚠️ 請先選擇用餐時段。'; hint.style.color = '#dc3545'; return; }
@@ -1386,41 +1390,56 @@ function makeSeat(seatNum, taken, interactive, previewCode) {
   }
   return el;
 }
-// ==================== 自動排列座位 ====================
-function autoArrangeSeats() {
-  if (!currentOrder.timeSlot) {
-    showToast('請先選擇用餐時段', 'error');
+// ==================== 自訂品項 ====================
+function renderCustomItems() {
+  const list = document.getElementById('customItemsList');
+  if (!list) return;
+  const items = currentOrder.customItems || [];
+  if (items.length === 0) {
+    list.innerHTML = '<div style="padding: 12px; color: #888; text-align: center; font-size: 13px; background: #f8fafc; border-radius: 6px;">尚無自訂品項</div>';
     return;
   }
-  const need = seatsNeeded(currentOrder);
-  if (need <= 0) {
-    showToast('請先填寫套餐或座位區人數', 'error');
-    return;
-  }
-  const taken = getSeatsTakenByTimeSlot(currentOrder.timeSlot, editingOrderId, currentOrder.date);
-  const picked = [];
-  for (let seat = 1; seat <= TOTAL_SEATS && picked.length < need; seat++) {
-    if (!taken[seat]) picked.push(seat);
-  }
-  currentOrder.selectedSeats = picked;
-  renderSeatmap();
-  updateSummary();
-  if (picked.length < need) {
-    showToast(`只剩 ${picked.length} 個座位可選，需要 ${need} 個。請改時段或減少人數。`, 'error');
-  } else {
-    showToast(`✅ 已自動排上 ${picked.length} 個座位（${picked[0]}~${picked[picked.length-1]}）`, 'success');
-  }
+  let html = '<div style="display: grid; gap: 6px;">';
+  let total = 0;
+  items.forEach((it, idx) => {
+    const sub = (Number(it.price)||0) * (Number(it.qty)||0);
+    total += sub;
+    html += `<div style="display: flex; gap: 8px; align-items: center; padding: 10px 12px; background: white; border: 1px solid #d8dfe9; border-radius: 6px;">
+      <span style="flex: 2; font-weight: 600; word-break: break-all;">${escapeHtml(it.name||'')}</span>
+      <span style="color: #888; font-size: 13px;">$${(Number(it.price)||0).toLocaleString()} × ${(Number(it.qty)||0)} =</span>
+      <strong style="color: #1e3a5f; min-width: 70px; text-align: right;">$${sub.toLocaleString()}</strong>
+      <button type="button" class="btn btn-danger btn-sm" data-ci-del="${idx}" style="padding: 4px 10px; font-size: 12px;">✕</button>
+    </div>`;
+  });
+  html += `<div style="text-align: right; padding: 8px 12px; font-size: 14px; color: #1e3a5f;"><strong>自訂品項小計：$${total.toLocaleString()}</strong></div></div>`;
+  list.innerHTML = html;
+  list.querySelectorAll('[data-ci-del]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const i = parseInt(btn.dataset.ciDel);
+      currentOrder.customItems.splice(i, 1);
+      renderCustomItems();
+      updateSummary();
+    });
+  });
 }
 
-function clearSelectedSeats() {
-  if (!currentOrder.selectedSeats || currentOrder.selectedSeats.length === 0) {
-    showToast('目前沒有已選座位', 'info');
-    return;
-  }
-  currentOrder.selectedSeats = [];
-  renderSeatmap();
+function addCustomItem() {
+  const nameEl = document.getElementById('ciName');
+  const priceEl = document.getElementById('ciPrice');
+  const qtyEl = document.getElementById('ciQty');
+  const name = (nameEl.value || '').trim();
+  const price = Math.max(0, parseInt(priceEl.value) || 0);
+  const qty = Math.max(1, parseInt(qtyEl.value) || 1);
+  if (!name) { showToast('請輸入品項名稱', 'error'); return; }
+  if (price <= 0) { showToast('請輸入單價（大於 0）', 'error'); return; }
+  if (!Array.isArray(currentOrder.customItems)) currentOrder.customItems = [];
+  currentOrder.customItems.push({ name, price, qty });
+  nameEl.value = '';
+  priceEl.value = '';
+  qtyEl.value = '1';
+  renderCustomItems();
   updateSummary();
-  showToast('已清除全部選位', 'success');
+  showToast(`已新增「${name}」`, 'success');
 }
 
 function makeDisplaySeat(seatNum, taken) {
@@ -1560,6 +1579,8 @@ function renderDatePicker() {
   updateRangeCount();
 }
 function updateSummary() {
+  // 同步自訂品項顯示
+  renderCustomItems();
   // 同步備註人數 input
   const ncInput = document.getElementById('noteCountInput');
   if (ncInput) {
@@ -1573,7 +1594,8 @@ function updateSummary() {
     currentOrder.discount = Math.max(0, parseInt(dcInput.value) || 0);
   }
   document.getElementById('totalPeople').textContent = totalPeople(currentOrder);
-  document.getElementById('selectedSeats').textContent = currentOrder.selectedSeats.length;
+  const ciEl = document.getElementById('customItemsCount');
+  if (ciEl) ciEl.textContent = (currentOrder.customItems||[]).length;
   const dc = document.getElementById('dayCount'); if (dc) dc.textContent = orderDateCount(currentOrder);
   const subEl = document.getElementById('subtotalAmount');
   if (subEl) subEl.textContent = calcSubtotal(currentOrder).toLocaleString();
@@ -1605,11 +1627,9 @@ function validateOrder() {
     if (orderDateCount(currentOrder) === 0 || (currentOrder.dates && currentOrder.dates.length === 0)) return '此區間內沒有符合所選星期的日期';
   }
   const need = totalPeople(currentOrder);
-  if (need === 0) return '請至少訂購一份套餐或座位';
-  const seatNeed = seatsNeeded(currentOrder);
-  // 安親團體 或 連續多日 不選座位（由現場安排），跳過座位數檢查
-  const noSeatSelect = (CURRENT_USER && CURRENT_USER.username === 'anqin') || isRange;
-  if (!noSeatSelect && currentOrder.selectedSeats.length !== seatNeed) return `已選座位 ${currentOrder.selectedSeats.length} 個，需要 ${seatNeed} 個（總人數 ${need} 扣掉備註人數 ${currentOrder.noteCount||0}），請對應人數選滿`;
+  const hasItems = need > 0 || (Array.isArray(currentOrder.customItems) && currentOrder.customItems.length > 0);
+  if (!hasItems) return '請至少訂購一份套餐、座位或自訂品項';
+  // 座位由現場安排，已不在頁面選位
   return null;
 }
 
@@ -1631,6 +1651,7 @@ function notifyLINE(action, orderData, extra = {}) {
   if (m.D) mealsList.push(`D招牌便當×${m.D}`);
   if (m.E) mealsList.push(`E雞排×${m.E}`);
   if (orderData.noteCount) mealsList.push(`備註人數×${orderData.noteCount}`);
+  (orderData.customItems || []).forEach(it => { if (it.name) mealsList.push(`${it.name}×${it.qty||0}($${it.price||0})`); });
   const mealsSummary = mealsList.length > 0 ? mealsList.join('、') : '無';
   // 座位區摘要
   const seatsList = [];
@@ -1750,6 +1771,7 @@ async function saveCurrentOrder() {
     meals: currentOrder.meals, seats: currentOrder.seats,
     noteCount: currentOrder.noteCount || 0,
     discount: currentOrder.discount || 0,
+    customItems: Array.isArray(currentOrder.customItems) ? currentOrder.customItems : [],
     selectedSeats: currentOrder.selectedSeats,
     status: currentOrder.status || 'pending',
     createdAt: currentOrder.createdAt || Date.now(),
@@ -1935,7 +1957,7 @@ function renderOrdersList() {
   if (visible.length === 0) { container.innerHTML = '<div class="empty-state"><div class="icon">📭</div>' + (isCustomer() ? '你還沒有訂單，請到「新增訂單」建立' : '還沒有訂單') + '</div>'; return; }
   const sorted = [...visible].sort((a, b) => { if ((a.date||'') !== (b.date||'')) return (a.date||'').localeCompare(b.date||''); if (a.timeSlot !== b.timeSlot) return a.timeSlot.localeCompare(b.timeSlot); return (a.code || '').localeCompare(b.code || ''); });
   let html = `<div style="overflow-x:auto;"><table class="orders-table"><thead><tr>
-    <th>訂單號</th><th>代號</th><th>狀態</th><th>日期</th><th>時段</th><th>安親班</th><th>聯絡人</th><th>手機</th><th>學校電話</th><th>套餐(A/B/C/D/E)</th><th>座位(F/G)</th><th>老師</th><th>總人數</th><th>金額</th><th>操作</th>
+    <th>訂單號</th><th>代號</th><th>狀態</th><th>日期</th><th>時段</th><th>安親班</th><th>聯絡人</th><th>手機</th><th>學校電話</th><th>套餐(A/B/C/D/E)</th><th>座位(F/G)</th><th>自訂品項</th><th>老師</th><th>總人數</th><th>金額</th><th>操作</th>
   </tr></thead><tbody>`;
   sorted.forEach(o => {
     const slot = TIME_SLOTS.find(s => s.id === o.timeSlot);
@@ -1954,6 +1976,7 @@ function renderOrdersList() {
       <td>${escapeHtml(o.schoolPhone || '—')}</td>
       <td>${(o.meals||{}).A||0}/${(o.meals||{}).B||0}/${(o.meals||{}).C||0}/${(o.meals||{}).D||0}/${(o.meals||{}).E||0}${o.noteCount?(' +備註'+o.noteCount):''}</td>
       <td>${(o.seats||{}).F_students||0}/${(o.seats||{}).G_students||0}</td>
+      <td style="font-size:12px;">${(o.customItems||[]).map(it => escapeHtml(it.name||'')+'×'+(it.qty||0)).join('、') || '—'}</td>
       <td>${((o.seats||{}).F_teachers||0) + ((o.seats||{}).G_teachers||0)}</td>
       <td>${totalPeople(o)}</td>
       <td><strong>$${calcTotal(o).toLocaleString()}</strong></td>
@@ -2029,6 +2052,10 @@ function generateOrderPrintHTML(o) {
   if (mP.D) mealsHtml += `<tr><td>D 招牌便當套餐</td><td>${mP.D}</td><td>$120</td><td>$${(mP.D*120).toLocaleString()}</td></tr>`;
   if (mP.E) mealsHtml += `<tr><td>E 雞排套餐</td><td>${mP.E}</td><td>$135</td><td>$${(mP.E*135).toLocaleString()}</td></tr>`;
   if (o.noteCount) mealsHtml += `<tr><td>備註人數（免座位）</td><td>${o.noteCount}</td><td>$120</td><td>$${(o.noteCount*120).toLocaleString()}</td></tr>`;
+  (o.customItems || []).forEach(it => {
+    const p = Number(it.price)||0; const q = Number(it.qty)||0;
+    mealsHtml += `<tr><td>📌 ${escapeHtml(it.name||'')}</td><td>${q}</td><td>$${p.toLocaleString()}</td><td>$${(p*q).toLocaleString()}</td></tr>`;
+  });
   if (sP.F_students) mealsHtml += `<tr><td>F 預約座位（學生）</td><td>${sP.F_students}</td><td>$30</td><td>$${(sP.F_students*30).toLocaleString()}</td></tr>`;
   if (sP.F_teachers) mealsHtml += `<tr><td>F 預約座位（老師）</td><td>${sP.F_teachers}</td><td>免費</td><td>$0</td></tr>`;
   if (sP.G_students) mealsHtml += `<tr><td>G 預約座位+冬瓜茶（學生）</td><td>${sP.G_students}</td><td>$40</td><td>$${(sP.G_students*40).toLocaleString()}</td></tr>`;
@@ -2121,9 +2148,9 @@ function printAll() {
 function exportCSV() {
   const visible = getVisibleOrders();
   if (visible.length === 0) { showToast('沒有訂單可匯出', 'error'); return; }
-  const headers = ['訂單號','代號','訂單編號','建立時間','日期','結束日','指定星期','總次數','時段','安親班','聯絡人','手機','學校電話','A套餐','B套餐','C套餐','D套餐','E套餐','備註人數','F學生','F老師','G學生','G老師','總人數','小計','優惠金額','應付總額','座位編號'];
+  const headers = ['訂單號','代號','訂單編號','建立時間','日期','結束日','指定星期','總次數','時段','安親班','聯絡人','手機','學校電話','A套餐','B套餐','C套餐','D套餐','E套餐','備註人數','F學生','F老師','G學生','G老師','總人數','小計','優惠金額','應付總額','自訂品項','座位編號'];
   const sorted = [...visible].sort((a, b) => (a.date||'').localeCompare(b.date||'') || a.timeSlot.localeCompare(b.timeSlot) || (a.code||'').localeCompare(b.code||''));
-  const rows = sorted.map(o => [o.orderNo || '', o.code, o.id, new Date(o.createdAt).toLocaleString('zh-TW'), o.date || '', (o.dateMode==='range'?(o.dateEnd||''):''), (o.dateMode==='range'?weekdaysLabel(o.weekdays):''), orderDateCount(o), o.timeSlot, o.schoolName, o.contact, o.phone, o.schoolPhone || '', (o.meals||{}).A||0, (o.meals||{}).B||0, (o.meals||{}).C||0, (o.meals||{}).D||0, (o.meals||{}).E||0, o.noteCount||0, (o.seats||{}).F_students||0, (o.seats||{}).F_teachers||0, (o.seats||{}).G_students||0, (o.seats||{}).G_teachers||0, totalPeople(o), calcSubtotal(o), (o.discount||0), calcTotal(o), o.selectedSeats.join(' ')]);
+  const rows = sorted.map(o => [o.orderNo || '', o.code, o.id, new Date(o.createdAt).toLocaleString('zh-TW'), o.date || '', (o.dateMode==='range'?(o.dateEnd||''):''), (o.dateMode==='range'?weekdaysLabel(o.weekdays):''), orderDateCount(o), o.timeSlot, o.schoolName, o.contact, o.phone, o.schoolPhone || '', (o.meals||{}).A||0, (o.meals||{}).B||0, (o.meals||{}).C||0, (o.meals||{}).D||0, (o.meals||{}).E||0, o.noteCount||0, (o.seats||{}).F_students||0, (o.seats||{}).F_teachers||0, (o.seats||{}).G_students||0, (o.seats||{}).G_teachers||0, totalPeople(o), calcSubtotal(o), (o.discount||0), calcTotal(o), (o.customItems||[]).map(it => `${it.name||''}x${it.qty||0}@${it.price||0}`).join(';'), (o.selectedSeats||[]).join(' ')]);
   const csv = '﻿' + [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
@@ -2266,6 +2293,7 @@ function renderOverviewDetails() {
             <th style="padding:6px; border:1px solid #ddd;">手機</th>
             <th style="padding:6px; border:1px solid #ddd;">A/B/C/D/E 套餐</th>
             <th style="padding:6px; border:1px solid #ddd;">F/G 座位</th>
+            <th style="padding:6px; border:1px solid #ddd;">自訂品項</th>
             <th style="padding:6px; border:1px solid #ddd;">備註</th>
             <th style="padding:6px; border:1px solid #ddd;">總人數</th>
             <th style="padding:6px; border:1px solid #ddd;">金額</th>
@@ -2283,6 +2311,7 @@ function renderOverviewDetails() {
               <td style="padding:6px; border:1px solid #ddd;">${escapeHtml(o.phone||'—')}</td>
               <td style="padding:6px; border:1px solid #ddd; text-align:center;">${mealsStr}</td>
               <td style="padding:6px; border:1px solid #ddd; text-align:center;">${seatsStr}</td>
+              <td style="padding:6px; border:1px solid #ddd; font-size:12px;">${(o.customItems||[]).map(it => escapeHtml(it.name||'')+'×'+(it.qty||0)).join('、') || '—'}</td>
               <td style="padding:6px; border:1px solid #ddd; text-align:center;">${o.noteCount||0}</td>
               <td style="padding:6px; border:1px solid #ddd; text-align:center;"><strong>${totalPeople(o)}</strong></td>
               <td style="padding:6px; border:1px solid #ddd; text-align:right;"><strong>$${calcTotal(o).toLocaleString()}</strong></td>
@@ -2409,8 +2438,10 @@ function renderAll() { renderDatePicker(); renderTimeSlots(); renderMeals(); ren
 
 // ==================== 初始化 ====================
 document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
-document.getElementById('btnAutoArrange')?.addEventListener('click', autoArrangeSeats);
-  document.getElementById('btnClearSeats')?.addEventListener('click', clearSelectedSeats);
+document.getElementById('ciAdd')?.addEventListener('click', addCustomItem);
+  document.getElementById('ciName')?.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addCustomItem(); }});
+  document.getElementById('ciPrice')?.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addCustomItem(); }});
+  document.getElementById('ciQty')?.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addCustomItem(); }});
   document.getElementById('noteCountInc')?.addEventListener('click', () => {
     const inp = document.getElementById('noteCountInput');
     inp.value = (parseInt(inp.value)||0) + 1;
